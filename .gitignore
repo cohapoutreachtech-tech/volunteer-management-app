@@ -1,0 +1,13 @@
+# secrets file hard coded in local and generated on deploy using github secrets for production
+.env
+
+# dependencies
+*node_modules
+
+# production
+*/build
+
+# do not track log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

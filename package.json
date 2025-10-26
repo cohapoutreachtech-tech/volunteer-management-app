@@ -1,0 +1,56 @@
+{
+  "name": "volunteer-management-app",
+  "version": "1.0.0",
+  "description": "REST API for volunteer management (Volunteers, Events, Registrations) using Express and MongoDB",
+  "main": "server.js",
+  "scripts": {
+    "start-api": "node server.js",
+    "dev-api": "nodemon server.js",
+    "start-ui": "react-scripts start",
+    "build": "next build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "dev": "next dev",
+    "start": "next start",
+    "init-db": "node database/init/initDB.js"
+  },
+  "author": "cohapoutreachtech-tech",
+  "license": "MIT",
+  "dependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "bcrypt": "^5.0.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^7.0.0",
+    "next": "^16.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ],
+    "devDependencies": {
+      "nodemon": "^2.0.22"
+    }
+  }
+}
