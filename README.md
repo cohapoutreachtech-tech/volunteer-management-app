@@ -1,1 +1,1 @@
-Creating a Readme file. 
+This is actually the website not app. 
