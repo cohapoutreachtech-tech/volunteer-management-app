@@ -4,14 +4,13 @@
   "description": "REST API for volunteer management (Volunteers, Events, Registrations) using Express and MongoDB",
   "main": "server.js",
   "scripts": {
-    "start-api": "node server.js",
-    "dev-api": "nodemon server.js",
+    "start-api": "nodemon volunteer-registration/backend/server.js",
+    "dev-api": "nodemon volunteer-registration/backend/server.js",
     "start-ui": "react-scripts start",
     "build": "next build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev": "next dev",
-    "start": "next start",
     "init-db": "node database/init/initDB.js"
   },
   "author": "cohapoutreachtech-tech",
@@ -38,6 +37,9 @@
       "react-app/jest"
     ]
   },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -48,9 +50,6 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
-    ],
-    "devDependencies": {
-      "nodemon": "^2.0.22"
-    }
+    ]
   }
 }
