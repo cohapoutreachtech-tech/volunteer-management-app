@@ -41,4 +41,21 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// Approve or reject volunteer (admin only)
+router.patch('/:id/status', auth, async (req, res) => {
+  try {
+    // Only admin can approve/reject
+    if (req.user.type !== 'Admin') return res.status(403).json({ message: 'Only admin can approve/reject volunteers' });
+    const { status } = req.body;
+    if (!['active', 'rejected', 'pending_approval'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+    const v = await Volunteer.findByIdAndUpdate(req.params.id, { status }, { new: true }).select('-password');
+    if (!v) return res.status(404).json({ message: 'Volunteer not found' });
+    res.json(v);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

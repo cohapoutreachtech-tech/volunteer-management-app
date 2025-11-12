@@ -16,9 +16,10 @@ router.get('/:id', async (req, res) => {
   res.json(e);
 });
 
-// Create event (protected — assume admin usage)
+// Create event (protected — admin only)
 router.post('/', auth, async (req, res) => {
   try {
+    if (req.user.type !== 'Admin') return res.status(403).json({ message: 'Only admins can create events' });
     let { event_id } = req.body;
     if (!event_id) event_id = `evt_${Date.now()}`;
     const event = new Event({ ...req.body, event_id });

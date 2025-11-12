@@ -19,7 +19,7 @@ cp .env.example .env
 2. Install dependencies:
 
 ```
-npm install
+npm run install-all
 ```
 
 3. Init database with dummy data:
@@ -40,3 +40,9 @@ Mock endpoints:
 - /background-check
 - /get-users/1
 - /get-events/1
+
+Sex Ofender Registry Background Check
+curl --request GET 
+	--url 'https://sex-offenders.p.rapidapi.com/sexoffender?firstName=Joseph&lastName=Nigro&zipcode=10465&mode=extensive' 
+	--header 'x-rapidapi-host: sex-offenders.p.rapidapi.com' 
+	--header 'x-rapidapi-key: <key>'
