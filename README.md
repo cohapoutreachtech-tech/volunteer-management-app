@@ -1,1 +1,3 @@
-This is actually the website not app. 
+---- REDUNDANT ---- 
+
+WILL BE DELETED. 
