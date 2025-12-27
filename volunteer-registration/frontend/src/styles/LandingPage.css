@@ -1,0 +1,238 @@
+.landing-container {
+  height: 100vh;
+  background: #3730a3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.landing-content {
+  max-width: 1000px;
+  text-align: center;
+  width: 100%;
+}
+
+.logo-container {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+}
+
+@keyframes flipOnce {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+.landing-title {
+  font-size: 32px;
+  color: white;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.landing-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 30px;
+}
+
+.portal-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto 25px;
+}
+
+.portal-card {
+  background: white;
+  padding: 30px 25px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.portal-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.portal-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 15px;
+  background: #3730a3;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portal-icon svg {
+  color: white;
+}
+
+.portal-card h2 {
+  font-size: 20px;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.portal-card p {
+  font-size: 13px;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+/* Registration Section Styles */
+.register-section {
+  margin-top: 25px;
+}
+
+.register-divider {
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.register-divider::before,
+.register-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 42%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.register-divider::before {
+  left: 0;
+}
+
+.register-divider::after {
+  right: 0;
+}
+
+.register-divider span {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0 15px;
+  background: transparent;
+}
+
+.register-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 2px solid transparent;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.register-card:hover {
+  transform: translateX(8px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border-color: rgba(55, 48, 163, 0.3);
+}
+
+.register-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.register-icon svg {
+  color: white;
+}
+
+.register-content {
+  flex: 1;
+  text-align: left;
+}
+
+.register-content h3 {
+  font-size: 18px;
+  color: #2c3e50;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.register-content p {
+  font-size: 13px;
+  color: #6c757d;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.register-arrow {
+  flex-shrink: 0;
+  color: #3730a3;
+  transition: transform 0.3s ease;
+}
+
+.register-card:hover .register-arrow {
+  transform: translateX(8px);
+}
+
+@media (max-width: 768px) {
+  .portal-options {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .landing-title {
+    font-size: 24px;
+  }
+
+  .register-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 25px 20px;
+  }
+
+  .register-content {
+    text-align: center;
+  }
+
+  .register-arrow {
+    transform: rotate(90deg);
+  }
+
+  .register-card:hover .register-arrow {
+    transform: rotate(90deg) translateX(8px);
+  }
+
+  .register-divider::before,
+  .register-divider::after {
+    width: 35%;
+  }
+}

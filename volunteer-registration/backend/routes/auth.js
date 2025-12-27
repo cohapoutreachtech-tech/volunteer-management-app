@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const Volunteer = require('../models/Volunteer');
-const axios = require('axios');
+const authController = require('../controllers/authController');
 
-// Register
+// POST /auth/login
+router.post('/login', authController.login);
+
+module.exports = router;
 router.post('/register', async (req, res) => {
   try {
     const {
