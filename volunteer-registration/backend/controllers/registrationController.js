@@ -87,3 +87,25 @@ if (require.main === module) {
 }
 
 module.exports = initializeDB;
+
+const requiredFields = [
+  'Volunteer__c',
+  'Event__c',
+  'Registration_Status__c'
+];
+
+const createRegistration = async (req, res) => {
+  try {
+    const missing = requiredFields.filter(field => !(field in req.body));
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: `Missing required field(s): ${missing.join(', ')}`
+      });
+    }
+    // ...existing code...
+  } catch (err) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// ...add similar checks for update/delete endpoints...

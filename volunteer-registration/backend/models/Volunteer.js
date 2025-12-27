@@ -37,7 +37,7 @@ const VolunteerSchema = new mongoose.Schema({
   Registration_Date__c: { type: Date, default: Date.now, required: true },
   Status__c: { type: String, enum: ['Active', 'Inactive', 'Suspended'], default: 'Active', required: true },
   Total_Hours_Worked__c: { type: Number, default: 0 },
-  Pass_Hash: { type: String, required: true } // stores the hash, required
+  Pass_Hash: { type: String, required: true }
 }, { timestamps: true });
 
 // Virtual for password (not persisted)

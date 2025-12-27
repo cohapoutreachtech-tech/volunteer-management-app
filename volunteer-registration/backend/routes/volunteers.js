@@ -1,62 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const Volunteer = require('../models/Volunteer'); // <-- fixed path
-const auth = require('../middleware/auth'); // <-- fixed path
+const volunteerController = require('../controllers/volunteerController');
+const authMiddleware = require('../middleware/auth'); // if you use auth
 
-// Get all volunteers (protected)
-router.get('/', auth, async (req, res) => {
-  const volunteers = await Volunteer.find().select('-password');
-  res.json(volunteers);
-});
+// Create volunteer
+router.post('/', volunteerController.createVolunteer);
 
-// Get volunteer by id (protected)
-router.get('/:id', auth, async (req, res) => {
-  const v = await Volunteer.findById(req.params.id).select('-password');
-  if (!v) return res.status(404).json({ message: 'Volunteer not found' });
-  res.json(v);
-});
+// Get all volunteers
+router.get('/', authMiddleware, volunteerController.getAllVolunteers);
 
-// Update volunteer (protected, allow user to update their own or admin later)
-router.put('/:id', auth, async (req, res) => {
-  try {
-    const update = { ...req.body };
-    delete update.password; // password change via dedicated endpoint later
+// Get volunteer by ID
+router.get('/:id', authMiddleware, volunteerController.getVolunteerById);
 
-    const v = await Volunteer.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
-    if (!v) return res.status(404).json({ message: 'Volunteer not found' });
-    res.json(v);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+// Get volunteer by email
+router.get('/email/:email', authMiddleware, volunteerController.getVolunteerByEmail);
+
+// Update volunteer
+router.put('/:id', authMiddleware, volunteerController.updateVolunteer);
 
 // Delete volunteer
-router.delete('/:id', auth, async (req, res) => {
-  try {
-    const v = await Volunteer.findByIdAndDelete(req.params.id);
-    if (!v) return res.status(404).json({ message: 'Volunteer not found' });
-    res.json({ message: 'Volunteer deleted' });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+router.delete('/:id', authMiddleware, volunteerController.deleteVolunteer);
 
-// Approve or reject volunteer (admin only)
-router.patch('/:id/status', auth, async (req, res) => {
-  try {
-    // Only admin can approve/reject
-    if (req.user.type !== 'Admin') return res.status(403).json({ message: 'Only admin can approve/reject volunteers' });
-    const { status } = req.body;
-    if (!['active', 'rejected', 'pending_approval'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
-    }
-    const v = await Volunteer.findByIdAndUpdate(req.params.id, { status }, { new: true }).select('-password');
-    if (!v) return res.status(404).json({ message: 'Volunteer not found' });
-    res.json(v);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-module.exports = router;
 module.exports = router;
