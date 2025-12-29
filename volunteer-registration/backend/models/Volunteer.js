@@ -8,7 +8,7 @@ const VolunteerSchema = new mongoose.Schema({
   Email__c: { type: String, required: true, unique: true, maxlength: 80 },
   Phone__c: { type: String, maxlength: 40 },
   Date_of_Birth__c: { type: Date, required: true },
-  Volunteer_Type__c: { type: String, enum: ['Individual', 'Company Representative'], required: true },
+  Volunteer_Type__c: { type: String, enum: ['Individual', 'Company Representative', 'Administrator'], required: true },
   Company_Name__c: { type: String, maxlength: 255 },
   Profile_Picture_URL__c: { type: String, maxlength: 255 },
   Facebook_Handle__c: { type: String, maxlength: 100 },

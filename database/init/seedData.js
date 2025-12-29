@@ -5,12 +5,12 @@ const hashPassword = (plain) => bcrypt.hashSync(plain, 10);
 const volunteers = [
   {
     name: 'VOL-0001',
-    First_Name__c: 'Admin',
+    First_Name__c: 'Administrator',
     Last_Name__c: 'COHAP',
     Email__c: 'admin@cohap.org',
     Phone__c: '260-555-0001',
     Date_of_Birth__c: new Date('1980-01-01'),
-    Volunteer_Type__c: 'Individual',
+    Volunteer_Type__c: 'Administrator',
     T_Shirt_Size__c: 'L',
     Why_Volunteer__c: 'Lead admin.',
     Community_Service_Hours__c: 'Yes',
@@ -68,6 +68,6 @@ const events = [
   }
 ];
 
-// Each volunteer object MUST have Pass_Hash and NO password property
+const history = [];
 
-module.exports = { volunteers, events };
+module.exports = { volunteers, events, history };

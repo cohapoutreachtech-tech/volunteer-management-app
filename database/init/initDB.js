@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
-const { volunteers, events } = require('./seedData');
+const { volunteers, events, history } = require('./seedData');
 const config = require('../config/mongoConfig');
-const Volunteer = require('../schemas/User'); // This should now have the correct logic
+const Volunteer = require('../schemas/User');
 const Event = require('../schemas/Event');
 const Registration = require('../schemas/Registration');
 const VolunteerHours = require('../schemas/VolunteerHours');
+const History = require('../schemas/History'); // Use the schema version for init-db
 
 async function validateCollection(Model, name) {
   const count = await Model.countDocuments();
@@ -28,7 +29,7 @@ async function initializeDB() {
     ]);
 
     // Insert volunteers
-    console.log('Seeding volunteers:', volunteers); // Add this line before insertMany
+    console.log('Seeding volunteers:', volunteers);
     const insertedVolunteers = await Volunteer.insertMany(volunteers);
 
     // Insert events, set Created_By__c to admin volunteer
@@ -65,6 +66,15 @@ async function initializeDB() {
     ];
     await VolunteerHours.insertMany(sampleHours);
 
+    // Insert a single record in the history table to force its creation
+    await History.create({
+      schema: 'Auth', // or 'Volunteer', 'Event', 'Registration'
+      activity_type: 'create',
+      user_id: insertedVolunteers[0]._id, // Use the admin volunteer's ObjectId
+      activity_timestamp: new Date(),
+      activity_response: 'npm run init-db'
+    });
+
     // Validate data insertion
     await Promise.all([
       validateCollection(Volunteer, 'Volunteers'),
@@ -72,7 +82,6 @@ async function initializeDB() {
       validateCollection(Registration, 'Registrations'),
       validateCollection(VolunteerHours, 'VolunteerHours')
     ]);
-
     console.log('✨ Database initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing database:', error);
