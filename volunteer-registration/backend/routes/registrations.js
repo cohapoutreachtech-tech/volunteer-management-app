@@ -1,45 +1,48 @@
 const express = require('express');
 const router = express.Router();
-const Registration = require('../models/Registration'); // <-- fixed path
-const Event = require('../models/Event'); // <-- fixed path
-const Volunteer = require('../models/Volunteer'); // <-- fixed path
-const auth = require('../middleware/auth'); // <-- fixed path
+const Registration = require('../models/Registration');
+const Event = require('../models/Event');
+const Volunteer = require('../models/Volunteer');
+const auth = require('../middleware/auth');
 
 // List registrations (protected)
 router.get('/', auth, async (req, res) => {
-  const regs = await Registration.find().populate('user_id', '-password').populate('event_id');
-  res.json(regs);
+  try {
+    const registrations = await Registration.find()
+      .populate('Volunteer__c')
+      .populate('Event__c');
+    res.json(registrations);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
-// Create registration: checks event active, shift exists, capacity not exceeded
+// Create registration
 router.post('/', auth, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { eventId, shift_time } = req.body;
-    if (!eventId || !shift_time) return res.status(400).json({ message: 'eventId and shift_time are required' });
-
-    const event = await Event.findById(eventId);
-    if (!event) return res.status(404).json({ message: 'Event not found' });
-    if (event.event_status !== 'active') return res.status(400).json({ message: 'Event is not active' });
-    if (!event.shift_times || !event.shift_times.includes(shift_time)) return res.status(400).json({ message: 'Shift time not available for this event' });
-
-    // Count existing registrations for this event+shift
-    const count = await Registration.countDocuments({ event_id: event._id, shift_time });
-    if (event.max_volunteers > 0 && count >= event.max_volunteers) {
-      return res.status(400).json({ message: 'Shift is full' });
+    const { Volunteer__c, Event__c } = req.body;
+    if (!Volunteer__c || !Event__c) {
+      return res.status(400).json({ message: 'Volunteer__c and Event__c are required' });
     }
 
-    // Prevent duplicate registration by same user for same event+shift
-    const already = await Registration.findOne({ user_id: userId, event_id: event._id, shift_time });
-    if (already) return res.status(400).json({ message: 'Already registered for this shift' });
+    const event = await Event.findById(Event__c);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
 
-    const volunteer = await Volunteer.findById(userId);
+    const volunteer = await Volunteer.findById(Volunteer__c);
     if (!volunteer) return res.status(404).json({ message: 'Volunteer not found' });
 
-    const reg = new Registration({ user_id: userId, event_id: event._id, shift_time });
+    // Check for duplicate registration
+    const existing = await Registration.findOne({ Volunteer__c, Event__c });
+    if (existing) return res.status(400).json({ message: 'Already registered for this event' });
+
+    const count = await Registration.countDocuments();
+    const name = `REG-${(count + 1).toString().padStart(4, '0')}`;
+
+    const reg = new Registration({ name, Volunteer__c, Event__c });
     await reg.save();
-    const ret = await Registration.findById(reg._id).populate('user_id', '-password').populate('event_id');
-    res.status(201).json(ret);
+    const result = await Registration.findById(reg._id).populate('Volunteer__c').populate('Event__c');
+    res.status(201).json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -48,22 +51,146 @@ router.post('/', auth, async (req, res) => {
 
 // Get registration
 router.get('/:id', auth, async (req, res) => {
-  const r = await Registration.findById(req.params.id).populate('user_id', '-password').populate('event_id');
-  if (!r) return res.status(404).json({ message: 'Registration not found' });
-  res.json(r);
+  try {
+    const r = await Registration.findById(req.params.id).populate('Volunteer__c').populate('Event__c');
+    if (!r) return res.status(404).json({ message: `Registration ${req.params.id} not found` });
+    res.json(r);
+  } catch (err) {
+    console.error('Error fetching registration:', err);
+    res.status(400).json({ message: `Invalid registration id: ${req.params.id}` });
+  }
 });
 
-// Delete registration (user can cancel their own or admin can delete)
+// Get registration by event and volunteer
+router.get('/:volunteerId/:eventId', auth, async (req, res) => {
+  try {
+    const { volunteerId, eventId } = req.params;
+    const r = await Registration.findOne({ 
+      Volunteer__c: volunteerId, 
+      Event__c: eventId 
+    }).populate('Volunteer__c').populate('Event__c');
+    if (!r) {
+      return res.status(404).json({ 
+        message: `Registration not found for Volunteer__c ${volunteerId} and Event__c ${eventId}` 
+      });
+    }
+    res.json(r);
+  } catch (err) {
+    console.error('Error fetching registration:', err);
+    res.status(400).json({ 
+      message: `Invalid volunteer or event id` 
+    });
+  }
+});
+
+// Get registrations by event id
+router.get('/event/:eventId', auth, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const registrations = await Registration.find({ Event__c: eventId })
+      .populate('Volunteer__c')
+      .populate('Event__c');
+    if (!registrations || registrations.length === 0) {
+      return res.status(404).json({ 
+        message: `No registrations found for Event__c ${eventId}` 
+      });
+    }
+    res.json(registrations);
+  } catch (err) {
+    console.error('Error fetching registrations by event:', err);
+    res.status(400).json({ 
+      message: `Invalid event id: ${req.params.eventId}` 
+    });
+  }
+});
+
+// Get all events a volunteer is registered to
+router.get('/volunteer/:volunteerId/events', auth, async (req, res) => {
+  try {
+    const { volunteerId } = req.params;
+    const registrations = await Registration.find({ Volunteer__c: volunteerId })
+      .populate('Event__c');
+    if (!registrations || registrations.length === 0) {
+      return res.status(200).json({ 
+        message: `No events found for Volunteer__c ${volunteerId}`,
+        events: []
+      });
+    }
+    const events = registrations.map(reg => reg.Event__c);
+    res.json({ 
+      message: `Found ${events.length} event(s) for Volunteer__c ${volunteerId}`,
+      events 
+    });
+  } catch (err) {
+    console.error('Error fetching events for volunteer:', err);
+    res.status(400).json({ 
+      message: `Invalid volunteer id: ${req.params.volunteerId}` 
+    });
+  }
+});
+
+// Get all registrations for a volunteer
+router.get('/volunteer/:volunteerId/registrations', auth, async (req, res) => {
+  try {
+    const { volunteerId } = req.params;
+    const registrations = await Registration.find({ Volunteer__c: volunteerId })
+      .populate('Volunteer__c')
+      .populate('Event__c');
+    if (!registrations || registrations.length === 0) {
+      return res.status(200).json({ 
+        message: `No registrations found for Volunteer__c ${volunteerId}`,
+        registrations: []
+      });
+    }
+    res.json({ 
+      message: `Found ${registrations.length} registration(s) for Volunteer__c ${volunteerId}`,
+      registrations 
+    });
+  } catch (err) {
+    console.error('Error fetching registrations for volunteer:', err);
+    res.status(400).json({ 
+      message: `Invalid volunteer id: ${req.params.volunteerId}` 
+    });
+  }
+});
+
+// Delete registration
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const r = await Registration.findById(req.params.id);
+    const r = await Registration.findByIdAndDelete(req.params.id);
     if (!r) return res.status(404).json({ message: 'Registration not found' });
-    // allow only owner to delete in this simple scaffold
-    if (r.user_id.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized to cancel this registration' });
-    await r.remove();
-    res.json({ message: 'Registration cancelled' });
+    res.json({ message: 'Registration deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Check if volunteer is registered for event
+router.get('/check/:volunteerId/:eventId', auth, async (req, res) => {
+  try {
+    const { volunteerId, eventId } = req.params;
+    const registration = await Registration.findOne({ 
+      Volunteer__c: volunteerId, 
+      Event__c: eventId 
+    }).populate('Volunteer__c').populate('Event__c');
+    
+    if (!registration) {
+      return res.status(200).json({ 
+        message: `No registration found for Volunteer__c ${volunteerId} and Event__c ${eventId}`,
+        exists: false,
+        registration: null
+      });
+    }
+    res.json({ 
+      message: `Registration found for Volunteer__c ${volunteerId} and Event__c ${eventId}`,
+      exists: true,
+      registration 
+    });
+  } catch (err) {
+    console.error('Error checking registration:', err);
+    res.status(400).json({ 
+      message: `Invalid volunteer or event id` 
+    });
   }
 });
 

@@ -9,7 +9,8 @@ const RegistrationSchema = new mongoose.Schema({
   Check_In_Time__c: { type: Date },
   Check_Out_Time__c: { type: Date },
   Attended__c: { type: Boolean, default: false },
-  Notes__c: { type: String, maxlength: 32768 }
+  Notes__c: { type: String, maxlength: 32768 },
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Volunteer', required: true } // Add this
 }, { timestamps: true });
 
 RegistrationSchema.index({ Volunteer__c: 1, Event__c: 1 }, { unique: true });

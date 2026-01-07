@@ -6,6 +6,6 @@ const HistorySchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Volunteer', required: true },
   activity_timestamp: { type: Date, default: Date.now, required: true },
   activity_response: { type: String, required: true }
-}, { collection: 'history' }); // <-- Explicitly set collection name
+}, { collection: 'history' });
 
 module.exports = mongoose.model('History', HistorySchema);
