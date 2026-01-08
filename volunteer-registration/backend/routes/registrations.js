@@ -4,6 +4,7 @@ const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const Volunteer = require('../models/Volunteer');
 const auth = require('../middleware/auth');
+const mongoose = require('mongoose');
 
 // List registrations (protected)
 router.get('/', auth, async (req, res) => {
@@ -30,7 +31,7 @@ router.post('/', auth, async (req, res) => {
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
     const volunteer = await Volunteer.findById(Volunteer__c);
-    if (!volunteer) return res.status(404).json({ message: 'Volunteer not found' });
+    if (!volunteer) return res.status(404).json({ message: `Volunteer ${Volunteer__c} not found` });
 
     // Check for duplicate registration
     const existing = await Registration.findOne({ Volunteer__c, Event__c });
@@ -52,12 +53,20 @@ router.post('/', auth, async (req, res) => {
 // Get registration
 router.get('/:id', auth, async (req, res) => {
   try {
-    const r = await Registration.findById(req.params.id).populate('Volunteer__c').populate('Event__c');
-    if (!r) return res.status(404).json({ message: `Registration ${req.params.id} not found` });
+    const { id } = req.params;
+    // treat placeholders like ':id' as empty
+    if (!id || id.trim() === '' || id.startsWith(':')) {
+      return res.status(400).json({ message: 'registration id is required and cannot be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: `Invalid registration id: ${id}` });
+    }
+    const r = await Registration.findById(id).populate('Volunteer__c').populate('Event__c');
+    if (!r) return res.status(404).json({ message: `Registration ${id} not found` });
     res.json(r);
   } catch (err) {
     console.error('Error fetching registration:', err);
-    res.status(400).json({ message: `Invalid registration id: ${req.params.id}` });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -65,10 +74,44 @@ router.get('/:id', auth, async (req, res) => {
 router.get('/:volunteerId/:eventId', auth, async (req, res) => {
   try {
     const { volunteerId, eventId } = req.params;
+
+    // treat placeholders like ':volunteerId' or ':eventId' as empty
+    if (!volunteerId || volunteerId.trim() === '' || volunteerId.startsWith(':')) {
+      return res.status(400).json({ message: 'volunteerId parameter is required and cannot be empty' });
+    }
+    if (!eventId || eventId.trim() === '' || eventId.startsWith(':')) {
+      return res.status(400).json({ message: 'eventId parameter is required and cannot be empty' });
+    }
+
+    // Only check ObjectId if not empty
+    if (!mongoose.Types.ObjectId.isValid(volunteerId)) {
+      return res.status(400).json({ message: `Invalid Volunteer__c ${volunteerId}` });
+    }
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: `Invalid Event__c ${eventId}` });
+    }
+    
+    // Validate volunteer exists
+    const volunteer = await Volunteer.findById(volunteerId);
+    if (!volunteer) {
+      return res.status(400).json({ 
+        message: `Invalid Volunteer__c ${volunteerId}` 
+      });
+    }
+    
+    // Validate event exists
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(400).json({ 
+        message: `Invalid Event__c ${eventId}` 
+      });
+    }
+    
     const r = await Registration.findOne({ 
       Volunteer__c: volunteerId, 
       Event__c: eventId 
     }).populate('Volunteer__c').populate('Event__c');
+    
     if (!r) {
       return res.status(404).json({ 
         message: `Registration not found for Volunteer__c ${volunteerId} and Event__c ${eventId}` 
@@ -77,9 +120,7 @@ router.get('/:volunteerId/:eventId', auth, async (req, res) => {
     res.json(r);
   } catch (err) {
     console.error('Error fetching registration:', err);
-    res.status(400).json({ 
-      message: `Invalid volunteer or event id` 
-    });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -87,6 +128,13 @@ router.get('/:volunteerId/:eventId', auth, async (req, res) => {
 router.get('/event/:eventId', auth, async (req, res) => {
   try {
     const { eventId } = req.params;
+    if (!eventId || eventId.trim() === '' || eventId.startsWith(':')) {
+      return res.status(400).json({ message: 'Event__c is required and cannot be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: `Invalid Event__c ${eventId}` });
+    }
+    
     const registrations = await Registration.find({ Event__c: eventId })
       .populate('Volunteer__c')
       .populate('Event__c');
@@ -99,7 +147,7 @@ router.get('/event/:eventId', auth, async (req, res) => {
   } catch (err) {
     console.error('Error fetching registrations by event:', err);
     res.status(400).json({ 
-      message: `Invalid event id: ${req.params.eventId}` 
+      message: `Invalid Event__c ${req.params.eventId}` 
     });
   }
 });
@@ -108,6 +156,13 @@ router.get('/event/:eventId', auth, async (req, res) => {
 router.get('/volunteer/:volunteerId/events', auth, async (req, res) => {
   try {
     const { volunteerId } = req.params;
+    if (!volunteerId || volunteerId.trim() === '' || volunteerId.startsWith(':')) {
+      return res.status(400).json({ message: 'Volunteer__c is required and cannot be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(volunteerId)) {
+      return res.status(400).json({ message: `Invalid Volunteer__c ${volunteerId}` });
+    }
+    
     const registrations = await Registration.find({ Volunteer__c: volunteerId })
       .populate('Event__c');
     if (!registrations || registrations.length === 0) {
@@ -124,7 +179,7 @@ router.get('/volunteer/:volunteerId/events', auth, async (req, res) => {
   } catch (err) {
     console.error('Error fetching events for volunteer:', err);
     res.status(400).json({ 
-      message: `Invalid volunteer id: ${req.params.volunteerId}` 
+      message: `Invalid Volunteer__c ${req.params.volunteerId}` 
     });
   }
 });
@@ -133,6 +188,15 @@ router.get('/volunteer/:volunteerId/events', auth, async (req, res) => {
 router.get('/volunteer/:volunteerId/registrations', auth, async (req, res) => {
   try {
     const { volunteerId } = req.params;
+    if (!volunteerId || volunteerId.trim() === '' || volunteerId.startsWith(':')) {
+      return res.status(400).json({ message: 'Volunteer__c is required and cannot be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(volunteerId)) {
+      return res.status(400).json({ 
+        message: `Invalid Volunteer__c ${volunteerId}` 
+      });
+    }
+    
     const registrations = await Registration.find({ Volunteer__c: volunteerId })
       .populate('Volunteer__c')
       .populate('Event__c');
@@ -149,7 +213,7 @@ router.get('/volunteer/:volunteerId/registrations', auth, async (req, res) => {
   } catch (err) {
     console.error('Error fetching registrations for volunteer:', err);
     res.status(400).json({ 
-      message: `Invalid volunteer id: ${req.params.volunteerId}` 
+      message: `Invalid Volunteer__c ${req.params.volunteerId}` 
     });
   }
 });
@@ -169,6 +233,56 @@ router.delete('/:id', auth, async (req, res) => {
 router.get('/check/:volunteerId/:eventId', auth, async (req, res) => {
   try {
     const { volunteerId, eventId } = req.params;
+    if (!volunteerId || volunteerId.trim() === '' || volunteerId.startsWith(':')) {
+      return res.status(200).json({
+        message: 'Volunteer__c is required and cannot be empty',
+        exists: false,
+        registration: null
+      });
+    }
+    if (!eventId || eventId.trim() === '' || eventId.startsWith(':')) {
+      return res.status(200).json({
+        message: 'Event__c is required and cannot be empty',
+        exists: false,
+        registration: null
+      });
+    }
+    // Only check ObjectId if not empty
+    if (!mongoose.Types.ObjectId.isValid(volunteerId)) {
+      return res.status(200).json({
+        message: `Invalid Volunteer__c ${volunteerId}`,
+        exists: false,
+        registration: null
+      });
+    }
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(200).json({
+        message: `Invalid Event__c ${eventId}`,
+        exists: false,
+        registration: null
+      });
+    }
+    
+    // Validate volunteer exists
+    const volunteer = await Volunteer.findById(volunteerId);
+    if (!volunteer) {
+      return res.status(200).json({ 
+        message: `Invalid Volunteer__c ${volunteerId}`,
+        exists: false,
+        registration: null
+      });
+    }
+    
+    // Validate event exists
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(200).json({ 
+        message: `Invalid Event__c ${eventId}`,
+        exists: false,
+        registration: null
+      });
+    }
+    
     const registration = await Registration.findOne({ 
       Volunteer__c: volunteerId, 
       Event__c: eventId 
@@ -188,9 +302,7 @@ router.get('/check/:volunteerId/:eventId', auth, async (req, res) => {
     });
   } catch (err) {
     console.error('Error checking registration:', err);
-    res.status(400).json({ 
-      message: `Invalid volunteer or event id` 
-    });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

@@ -3,6 +3,7 @@ const router = express.Router();
 const Event = require('../models/Event');
 const Volunteer = require('../models/Volunteer');
 const auth = require('../middleware/auth');
+const mongoose = require('mongoose');
 
 // List events (public)
 router.get('/', async (req, res) => {
@@ -10,25 +11,43 @@ router.get('/', async (req, res) => {
   res.json(events);
 });
 
-// Get event
-router.get('/:id', async (req, res) => {
-  try {
-    const e = await Event.findById(req.params.id);
-    if (!e) return res.status(404).json({ message: `Event ${req.params.id} not found` });
-    res.json(e);
-  } catch (err) {
-    console.error('Error fetching event:', err);
-    res.status(400).json({ message: `Invalid event id: ${req.params.id}` });
-  }
-});
-
 // Get events by title (returns array, not error page)
+// <-- moved above the '/:id' route to avoid route collision
 router.get('/title/:title', async (req, res) => {
   try {
-    const events = await Event.find({ Title__c: req.params.title });
+    const { title } = req.params;
+    
+    // Validate parameter is not empty or placeholder
+    if (!title || title.trim() === '' || title.startsWith(':')) {
+      return res.status(400).json({ message: 'Title__c is required and cannot be empty' });
+    }
+    
+    const events = await Event.find({ Title__c: title });
     res.json(Array.isArray(events) && events.length > 0 ? events : []);
   } catch (err) {
     console.error('Error fetching events by title:', err);
+    res.status(400).json({ message: `Invalid Title__c ${req.params.title}` });
+  }
+});
+
+// Get event
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Treat placeholders like ':id' as empty and prioritize that message
+    if (!id || id.trim() === '' || id.startsWith(':')) {
+      return res.status(400).json({ message: 'Event id is required and cannot be empty' });
+    }
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: `Invalid event id: ${id}` });
+    }
+
+    const e = await Event.findById(id);
+    if (!e) return res.status(404).json({ message: `Event ${id} not found` });
+    res.json(e);
+  } catch (err) {
+    console.error('Error fetching event:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -37,8 +56,9 @@ router.get('/title/:title', async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const { Created_By__c } = req.body;
-    if (!Created_By__c) {
-      return res.status(400).json({ message: 'Created_By__c is required.' });
+    
+    if (!Created_By__c || Created_By__c.toString().trim() === '') {
+      return res.status(400).json({ message: 'Created_By__c is required and cannot be empty.' });
     }
     // Check if the creator is an admin
     const creator = await Volunteer.findById(Created_By__c);
@@ -66,8 +86,9 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { Updated_By__c } = req.body;
-    if (!Updated_By__c) {
-      return res.status(400).json({ message: 'Updated_By__c is required.' });
+    
+    if (!Updated_By__c || Updated_By__c.toString().trim() === '') {
+      return res.status(400).json({ message: 'Updated_By__c is required and cannot be empty.' });
     }
     const updater = await Volunteer.findById(Updated_By__c);
     if (!updater) {
@@ -88,8 +109,9 @@ router.put('/:id', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   try {
     const { Deleted_By__c } = req.body;
-    if (!Deleted_By__c) {
-      return res.status(400).json({ message: 'Deleted_By__c is required.' });
+    
+    if (!Deleted_By__c || Deleted_By__c.toString().trim() === '') {
+      return res.status(400).json({ message: 'Deleted_By__c is required and cannot be empty.' });
     }
     const deleter = await Volunteer.findById(Deleted_By__c);
     if (!deleter) {

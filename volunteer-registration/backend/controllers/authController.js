@@ -50,19 +50,18 @@ exports.login = async (req, res) => {
   try {
     const Email__c = req.body.Email__c || req.body.email;
     const password = req.body.password;
-    if (!Email__c || !password) {
-      return res.status(400).json({ message: 'Email and password are required.' });
+    
+    if (!Email__c || Email__c.trim() === '') {
+      return res.status(400).json({ message: 'Email is required and cannot be empty.' });
+    }
+    
+    if (!password || password.trim() === '') {
+      return res.status(400).json({ message: 'Password is required and cannot be empty.' });
     }
 
     const volunteer = await Volunteer.findOne({ Email__c });
     if (!volunteer) {
-      await logActivity({
-        schema: 'Auth',
-        activity_type: 'login',
-        user_id: null,
-        activity_response: 'Invalid credentials'
-      });
-      return res.status(401).json({ message: 'Invalid credentials.' });
+      return res.status(401).json({ message: `Invalid email ${Email__c}` });
     }
 
     const isMatch = await bcrypt.compare(password, volunteer.Pass_Hash);
@@ -73,7 +72,7 @@ exports.login = async (req, res) => {
         user_id: volunteer._id,
         activity_response: 'Invalid credentials'
       });
-      return res.status(401).json({ message: 'Invalid credentials.' });
+      return res.status(401).json({ message: 'Invalid password.' });
     }
 
     const payload = {
