@@ -9,11 +9,11 @@ router.post('/', volunteerController.createVolunteer);
 // Get all volunteers
 router.get('/', authMiddleware, volunteerController.getAllVolunteers);
 
-// Get volunteer by ID
-router.get('/:id', authMiddleware, volunteerController.getVolunteerById);
-
 // Get volunteer by email
 router.get('/email/:email', authMiddleware, volunteerController.getVolunteerByEmail);
+
+// Get volunteer by ID
+router.get('/:id', authMiddleware, volunteerController.getVolunteerById);
 
 // Update volunteer
 router.put('/:id', authMiddleware, volunteerController.updateVolunteer);

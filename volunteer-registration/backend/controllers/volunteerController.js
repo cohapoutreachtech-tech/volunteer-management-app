@@ -1,6 +1,7 @@
 const Volunteer = require('../models/Volunteer');
 const History = require('../models/History');
 const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
 
 const requiredFields = [
   'First_Name__c',
@@ -110,12 +111,15 @@ const createVolunteer = async (req, res) => {
 // Example: Find volunteer by email
 const getVolunteerByEmail = async (req, res) => {
   try {
-    if (!req.params.email || typeof req.params.email !== 'string') {
-      return res.status(400).json({ message: 'Bad request: Email is required.' });
+    const { email } = req.params;
+
+    // Normalize email to catch placeholders and whitespace-only values
+    const normalizedEmail = (email === undefined || email === null) ? '' : String(email).trim();
+    if (normalizedEmail === '' || normalizedEmail === ':email' || ['undefined', 'null'].includes(normalizedEmail.toLowerCase())) {
+      return res.status(400).json({ message: 'email should not be empty' });
     }
 
-    const { email } = req.params;
-    const volunteer = await Volunteer.findOne({ Email__c: email });
+    const volunteer = await Volunteer.findOne({ Email__c: normalizedEmail });
     if (!volunteer) {
       await logActivity({
         schema: 'Volunteer',
@@ -155,13 +159,18 @@ const updateVolunteer = async (req, res) => {
     }
 
     const { id } = req.params;
-    if (!id || typeof id !== 'string') {
-      return res.status(400).json({ message: 'Invalid or missing volunteer id.' });
+    // Normalize id to catch literal placeholders like ':id', 'undefined', 'null', or whitespace
+    const normalizedId = (id === undefined || id === null) ? '' : String(id).trim();
+    if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
+      return res.status(400).json({ message: 'volunteer id should not be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+      return res.status(400).json({ message: 'Invalid volunteer id format' });
     }
     const updateFields = { ...req.body };
 
-    // Debug: log the incoming update request
-    console.log('DEBUG updateVolunteer:', { id, updateFields });
+  // Debug: log the incoming update request
+  console.log('DEBUG updateVolunteer:', { id: normalizedId, updateFields });
 
     // List of fields that should NOT be updated directly
     const protectedFields = [
@@ -192,7 +201,7 @@ const updateVolunteer = async (req, res) => {
     protectedFields.forEach(field => delete updateFields[field]);
 
     // Actually update the document
-    const volunteer = await Volunteer.findByIdAndUpdate(id, updateFields, { new: true });
+  const volunteer = await Volunteer.findByIdAndUpdate(normalizedId, updateFields, { new: true });
     if (!volunteer) {
       await logActivity({
         schema: 'Volunteer',
@@ -230,12 +239,17 @@ const updateVolunteer = async (req, res) => {
 // Delete volunteer
 const deleteVolunteer = async (req, res) => {
   try {
-    if (!req.params.id || typeof req.params.id !== 'string') {
-      return res.status(400).json({ message: 'Bad request: Volunteer id is required.' });
+    const { id } = req.params;
+    // Normalize id to catch literal placeholders like ':id', 'undefined', 'null', or whitespace
+    const normalizedId = (id === undefined || id === null) ? '' : String(id).trim();
+    if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
+      return res.status(400).json({ message: 'volunteer id should not be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+      return res.status(400).json({ message: 'Invalid volunteer id format' });
     }
 
-    const { id } = req.params;
-    const volunteer = await Volunteer.findByIdAndDelete(id);
+  const volunteer = await Volunteer.findByIdAndDelete(normalizedId);
     if (!volunteer) {
       await logActivity({
         schema: 'Volunteer',
@@ -290,12 +304,25 @@ const getAllVolunteers = async (req, res) => {
 const getVolunteerById = async (req, res) => {
   try {
     const { id } = req.params;
-    const volunteer = await Volunteer.findById(id);
+
+    // Normalize id to catch literal placeholders like ':id', 'undefined', 'null', or whitespace
+    const normalizedId = (id === undefined || id === null) ? '' : String(id).trim();
+    if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
+      return res.status(400).json({ message: 'volunteer id should not be empty' });
+    }
+
+    // Validate ObjectId format to avoid CastError returning 500
+    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+      return res.status(400).json({ message: 'Invalid volunteer id format' });
+    }
+
+    const volunteer = await Volunteer.findById(normalizedId);
     if (!volunteer) {
-      return res.status(404).json({ message: `Volunteer with id ${id} not found` });
+      return res.status(404).json({ message: `Volunteer with id ${normalizedId} not found` });
     }
     res.json(volunteer);
   } catch (err) {
+    console.error('Get volunteer by id error:', err);
     res.status(500).json({ message: 'Server error.' });
   }
 };
