@@ -21,7 +21,7 @@ const formattedCluster = MONGO_CLUSTER
 const uri = `mongodb+srv://${MONGO_USERNAME}:${MONGO_PASSWORD}@cluster${formattedCluster}.${CLUSTER_ID}.mongodb.net/${MONGO_DB}?retryWrites=true&w=majority`;
 
 const connectDB = async () => {
-  console.log('API connecting to MongoDB URI:', uri.replace(MONGO_PASSWORD, '****'));
+  // console.log('API connecting to MongoDB URI:', uri.replace(MONGO_PASSWORD, '****'));
   try {
     await mongoose.connect(uri, {
       useNewUrlParser: true,
