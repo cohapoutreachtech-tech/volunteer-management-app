@@ -23,8 +23,26 @@ router.get('/', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const { Volunteer__c, Event__c } = req.body;
-    if (!Volunteer__c || !Event__c) {
-      return res.status(400).json({ message: 'Volunteer__c and Event__c are required' });
+
+    // consider undefined, null, empty-string or whitespace as empty
+    const isEmpty = v => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+    const missing = [];
+    if (isEmpty(Volunteer__c)) missing.push('Volunteer id');
+    if (isEmpty(Event__c)) missing.push('Event id');
+
+    if (missing.length > 0) {
+      const message = missing.length === 1
+        ? `${missing[0]} is empty`
+        : `${missing[0]} and ${missing[1]} are empty`;
+      return res.status(400).json({ message });
+    }
+
+    // Validate ObjectId formats to avoid Mongoose CastError
+    if (!mongoose.Types.ObjectId.isValid(Event__c)) {
+      return res.status(400).json({ message: `Invalid Event id: ${Event__c}` });
+    }
+    if (!mongoose.Types.ObjectId.isValid(Volunteer__c)) {
+      return res.status(400).json({ message: `Invalid Volunteer id: ${Volunteer__c}` });
     }
 
     const event = await Event.findById(Event__c);
@@ -40,7 +58,13 @@ router.post('/', auth, async (req, res) => {
     const count = await Registration.countDocuments();
     const name = `REG-${(count + 1).toString().padStart(4, '0')}`;
 
-    const reg = new Registration({ name, Volunteer__c, Event__c });
+    // Ensure the authenticated user id is attached to the registration (model requires user_id)
+    const userId = req.user?.id || req.user?._id;
+    if (!userId) {
+      return res.status(400).json({ message: 'Authenticated user (user_id) is required to create a registration' });
+    }
+
+    const reg = new Registration({ name, Volunteer__c, Event__c, user_id: userId });
     await reg.save();
     const result = await Registration.findById(reg._id).populate('Volunteer__c').populate('Event__c');
     res.status(201).json(result);
@@ -66,6 +90,27 @@ router.get('/:id', auth, async (req, res) => {
     res.json(r);
   } catch (err) {
     console.error('Error fetching registration:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update registration
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // treat placeholders like ':id' as empty
+    if (!id || id.trim() === '' || id.startsWith(':')) {
+      return res.status(400).json({ message: 'registration id is required and cannot be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: `Invalid registration id: ${id}` });
+    }
+
+    const updated = await Registration.findByIdAndUpdate(id, req.body, { new: true }).populate('Volunteer__c').populate('Event__c');
+    if (!updated) return res.status(404).json({ message: `Registration ${id} not found` });
+    res.json({ message: `Registration ${id} updated`, registration: updated });
+  } catch (err) {
+    console.error('Error updating registration:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -221,9 +266,18 @@ router.get('/volunteer/:volunteerId/registrations', auth, async (req, res) => {
 // Delete registration
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const r = await Registration.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    // treat placeholders like ':id' as empty
+    if (!id || id.trim() === '' || id.startsWith(':')) {
+      return res.status(400).json({ message: 'registration id is required and cannot be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: `Invalid registration id: ${id}` });
+    }
+
+    const r = await Registration.findByIdAndDelete(id);
     if (!r) return res.status(404).json({ message: 'Registration not found' });
-    res.json({ message: 'Registration deleted' });
+    res.json({ message: `Registration ${id} deleted` });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

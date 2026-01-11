@@ -112,12 +112,50 @@ async function logActivity({ schema, activity_type, user_id, activity_response }
 // Example: Create Registration
 const createRegistration = async (req, res) => {
   try {
-    const missing = requiredFields.filter(field => !(field in req.body));
+    // Treat missing, null, undefined, or empty/whitespace strings as missing
+    const missing = requiredFields.filter(field => {
+      if (!(field in req.body)) return true;
+      const val = req.body[field];
+      if (val === undefined || val === null) return true;
+      if (typeof val === 'string' && val.trim() === '') return true;
+      return false;
+    });
+
     if (missing.length > 0) {
-      return res.status(400).json({
-        message: `Missing required field(s): ${missing.join(', ')}`
-      });
+      // Map internal field keys to friendly names for clearer messages
+      const fieldNameMap = {
+        Volunteer__c: 'Volunteer id',
+        Event__c: 'Event id',
+        Registration_Status__c: 'Registration status'
+      };
+
+      const friendly = missing.map(f => fieldNameMap[f] || f);
+
+      // Build a clear message that distinguishes empty Volunteer/Event ids from other missing fields
+      const emptyKeys = ['Volunteer__c', 'Event__c'];
+      const emptyFriendly = missing.filter(f => emptyKeys.includes(f)).map(f => fieldNameMap[f] || f);
+      const otherMissing = missing.filter(f => !emptyKeys.includes(f)).map(f => fieldNameMap[f] || f);
+
+      const parts = [];
+      if (emptyFriendly.length === 1) {
+        parts.push(`${emptyFriendly[0]} is empty`);
+      } else if (emptyFriendly.length === 2) {
+        parts.push(`${emptyFriendly[0]} and ${emptyFriendly[1]} are empty`);
+      }
+
+      if (otherMissing.length === 1) {
+        parts.push(`${otherMissing[0]} is required`);
+      } else if (otherMissing.length > 1) {
+        // Oxford-style join for other missing fields
+        const copy = [...otherMissing];
+        const last = copy.pop();
+        parts.push(`${copy.join(', ')}, and ${last} are required`);
+      }
+
+      const message = parts.join('; ');
+      return res.status(400).json({ message });
     }
+
     const registration = new Registration(req.body);
     await registration.save();
     await logActivity({
