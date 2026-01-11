@@ -34,17 +34,16 @@ router.get('/title/:title', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    // Treat placeholders like ':id' as empty and prioritize that message
-    if (!id || id.trim() === '' || id.startsWith(':')) {
-      return res.status(400).json({ message: 'Event id is required and cannot be empty' });
+    const normalizedId = (id === undefined || id === null) ? '' : String(id).trim();
+    if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
+      return res.status(400).json({ message: 'event id should not be empty' });
     }
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: `Invalid event id: ${id}` });
+    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+      return res.status(400).json({ message: `Invalid event id: ${normalizedId}` });
     }
 
-    const e = await Event.findById(id);
-    if (!e) return res.status(404).json({ message: `Event ${id} not found` });
+    const e = await Event.findById(normalizedId);
+    if (!e) return res.status(404).json({ message: `Event ${normalizedId} not found` });
     res.json(e);
   } catch (err) {
     console.error('Error fetching event:', err);
@@ -85,6 +84,17 @@ router.post('/', auth, async (req, res) => {
 // Update event
 router.put('/:id', auth, async (req, res) => {
   try {
+    const { id } = req.params;
+
+    // Validate id first to catch missing placeholder values
+    const normalizedId = (id === undefined || id === null) ? '' : String(id).trim();
+    if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
+      return res.status(400).json({ message: 'event id should not be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+      return res.status(400).json({ message: `Invalid event id: ${normalizedId}` });
+    }
+
     const { Updated_By__c } = req.body;
     
     if (!Updated_By__c || Updated_By__c.toString().trim() === '') {
@@ -97,8 +107,8 @@ router.put('/:id', auth, async (req, res) => {
     if (updater.Volunteer_Type__c !== 'Administrator') {
       return res.status(403).json({ message: `Only admins can update events. Updated_By__c ${Updated_By__c} is not an admin.` });
     }
-    const e = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!e) return res.status(404).json({ message: `Event id ${req.params.id} not found` });
+    const e = await Event.findByIdAndUpdate(normalizedId, req.body, { new: true });
+    if (!e) return res.status(404).json({ message: `Event id ${normalizedId} not found` });
     res.json({ message: `Event ${e._id} was updated.`, event: e });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -108,6 +118,17 @@ router.put('/:id', auth, async (req, res) => {
 // Delete event
 router.delete('/:id', auth, async (req, res) => {
   try {
+    const { id } = req.params;
+
+    // Validate id first
+    const normalizedId = (id === undefined || id === null) ? '' : String(id).trim();
+    if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
+      return res.status(400).json({ message: 'event id should not be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+      return res.status(400).json({ message: `Invalid event id: ${normalizedId}` });
+    }
+
     const { Deleted_By__c } = req.body;
     
     if (!Deleted_By__c || Deleted_By__c.toString().trim() === '') {
@@ -120,8 +141,8 @@ router.delete('/:id', auth, async (req, res) => {
     if (deleter.Volunteer_Type__c !== 'Administrator') {
       return res.status(403).json({ message: `Only admins can delete events. Deleted_By__c ${Deleted_By__c} is not an admin.` });
     }
-    const e = await Event.findByIdAndDelete(req.params.id);
-    if (!e) return res.status(404).json({ message: `Event id ${req.params.id} not found` });
+    const e = await Event.findByIdAndDelete(normalizedId);
+    if (!e) return res.status(404).json({ message: `Event id ${normalizedId} not found` });
     res.json({ message: `Event ${e._id} was deleted.` });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

@@ -1,5 +1,6 @@
 const Event = require('../models/Event');
 const Volunteer = require('../models/Volunteer');
+const mongoose = require('mongoose');
 
 const requiredFields = [
   'Title__c',
@@ -116,6 +117,16 @@ const getEventByTitle = async (req, res) => {
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Normalize and validate id
+    const normalizedId = (id === undefined || id === null) ? '' : String(id).trim();
+    if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
+      return res.status(400).json({ message: 'event id should not be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+      return res.status(400).json({ message: 'Invalid event id format' });
+    }
+
     const { Updated_By__c } = req.body;
     if (!Updated_By__c) {
       return res.status(400).json({ message: 'Updated_By__c is required.' });
@@ -129,7 +140,7 @@ const updateEvent = async (req, res) => {
       return res.status(403).json({ message: 'Only admins can update events.' });
     }
 
-    const event = await Event.findByIdAndUpdate(id, req.body, { new: true });
+  const event = await Event.findByIdAndUpdate(normalizedId, req.body, { new: true });
     if (!event) {
       await logActivity({
         schema: 'Event',
@@ -161,6 +172,16 @@ const updateEvent = async (req, res) => {
 const deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Normalize and validate id
+    const normalizedId = (id === undefined || id === null) ? '' : String(id).trim();
+    if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
+      return res.status(400).json({ message: 'event id should not be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+      return res.status(400).json({ message: 'Invalid event id format' });
+    }
+
     const { Deleted_By__c } = req.body;
     if (!Deleted_By__c) {
       return res.status(400).json({ message: 'Deleted_By__c is required.' });
@@ -174,7 +195,7 @@ const deleteEvent = async (req, res) => {
       return res.status(403).json({ message: 'Only admins can delete events.' });
     }
 
-    const event = await Event.findByIdAndDelete(id);
+  const event = await Event.findByIdAndDelete(normalizedId);
     if (!event) {
       await logActivity({
         schema: 'Event',
@@ -206,13 +227,23 @@ const deleteEvent = async (req, res) => {
 const getEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const event = await Event.findById(id);
+
+    // Normalize and validate id
+    const normalizedId = (id === undefined || id === null) ? '' : String(id).trim();
+    if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
+      return res.status(400).json({ message: 'event id should not be empty' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+      return res.status(400).json({ message: 'Invalid event id format' });
+    }
+
+    const event = await Event.findById(normalizedId);
     if (!event) {
       await logActivity({
         schema: 'Event',
         activity_type: 'get',
         user_id: req.user?.id || null,
-        activity_response: `Event ${id} not found`
+        activity_response: `Event ${normalizedId} not found`
       });
       return res.status(404).json({ message: 'Event not found' });
     }
