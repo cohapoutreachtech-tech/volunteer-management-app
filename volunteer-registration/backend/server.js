@@ -15,6 +15,7 @@ app.use('/auth', require('./routes/auth')); // <-- fixed path
 app.use('/volunteers', require('./routes/volunteers')); // <-- fixed path
 app.use('/events', require('./routes/events')); // <-- fixed path
 app.use('/registrations', require('./routes/registrations')); // <-- fixed path
+app.use('/volunteerhours', require('./routes/volunteerHours'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
