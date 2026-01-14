@@ -109,6 +109,22 @@ async function logActivity({ schema, activity_type, user_id, activity_response }
   }
 }
 
+// Validate a date-only string in YYYY-MM-DD format
+const isValidDateOnly = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) return false;
+  const d = new Date(val);
+  return !isNaN(d.getTime());
+};
+
+// Validate an ISO-like datetime string that includes a time portion
+const isValidDateTime = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  if (!/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+\-]\d{2}:?\d{2})?$/.test(val)) return false;
+  const t = Date.parse(val);
+  return !isNaN(t);
+};
+
 // Example: Create Registration
 const createRegistration = async (req, res) => {
   try {
@@ -156,6 +172,20 @@ const createRegistration = async (req, res) => {
       return res.status(400).json({ message });
     }
 
+    // Validate optional date fields (fail fast with clear messages)
+    if ('Registration_Date__c' in req.body && !isValidDateOnly(String(req.body.Registration_Date__c))) {
+      return res.status(400).json({ message: `Registration date is invalid: ${req.body.Registration_Date__c} (expected format: YYYY-MM-DD)` });
+    }
+    if ('Created_Date__c' in req.body && !isValidDateTime(String(req.body.Created_Date__c))) {
+      return res.status(400).json({ message: `Created date is invalid: ${req.body.Created_Date__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
+    }
+    if ('Clock_In_Time__c' in req.body && !isValidDateTime(String(req.body.Clock_In_Time__c))) {
+      return res.status(400).json({ message: `Clock in time is invalid: ${req.body.Clock_In_Time__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
+    }
+    if ('Clock_Out_Time__c' in req.body && req.body.Clock_Out_Time__c && !isValidDateTime(String(req.body.Clock_Out_Time__c))) {
+      return res.status(400).json({ message: `Clock out time is invalid: ${req.body.Clock_Out_Time__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
+    }
+
     const registration = new Registration(req.body);
     await registration.save();
     await logActivity({
@@ -176,10 +206,25 @@ const createRegistration = async (req, res) => {
   }
 };
 
+
 // Example: Update Registration
 const updateRegistration = async (req, res) => {
   try {
     const { id } = req.params;
+    // Validate any provided date fields on update
+    if ('Registration_Date__c' in req.body && !isValidDateOnly(String(req.body.Registration_Date__c))) {
+      return res.status(400).json({ message: `Registration date is invalid: ${req.body.Registration_Date__c} (expected format: YYYY-MM-DD)` });
+    }
+    if ('Created_Date__c' in req.body && !isValidDateTime(String(req.body.Created_Date__c))) {
+      return res.status(400).json({ message: `Created date is invalid: ${req.body.Created_Date__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
+    }
+    if ('Clock_In_Time__c' in req.body && !isValidDateTime(String(req.body.Clock_In_Time__c))) {
+      return res.status(400).json({ message: `Clock in time is invalid: ${req.body.Clock_In_Time__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
+    }
+    if ('Clock_Out_Time__c' in req.body && req.body.Clock_Out_Time__c && !isValidDateTime(String(req.body.Clock_Out_Time__c))) {
+      return res.status(400).json({ message: `Clock out time is invalid: ${req.body.Clock_Out_Time__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
+    }
+
     const registration = await Registration.findByIdAndUpdate(id, req.body, { new: true });
     if (!registration) {
       await logActivity({

@@ -5,6 +5,20 @@ const Volunteer = require('../models/Volunteer');
 const auth = require('../middleware/auth');
 const mongoose = require('mongoose');
 
+// Validate a date-only string in YYYY-MM-DD format
+const isValidDateOnly = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) return false;
+  const d = new Date(val);
+  return !isNaN(d.getTime());
+};
+
+// Validate a time-only string HH:MM or HH:MM:SS
+const isValidTimeOnly = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  return /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(val);
+};
+
 // List events (public)
 router.get('/', async (req, res) => {
   const events = await Event.find();
@@ -55,12 +69,33 @@ router.get('/:id', async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const { Created_By__c } = req.body;
-    
-    if (!Created_By__c || Created_By__c.toString().trim() === '') {
-      return res.status(400).json({ message: 'Created_By__c is required and cannot be empty.' });
+
+    // Pre-validate common required fields so we can return friendly 4xx messages before Mongoose runs
+    const requiredFields = {
+      Event_Date__c: 'Event date is required',
+      Title__c: 'Event title is required',
+      Event_Time__c: 'Event time is required',
+      Location__c: 'Event location is required',
+      Description__c: 'Event description is required',
+      Created_By__c: 'Created_By__c is required and cannot be empty.'
+    };
+    for (const [field, msg] of Object.entries(requiredFields)) {
+      const v = req.body[field];
+      if (v === undefined || v === null || (typeof v === 'string' && v.trim() === '')) {
+        return res.status(400).json({ message: msg });
+      }
     }
-    // Check if the creator is an admin
-    const creator = await Volunteer.findById(Created_By__c);
+
+    // Validate Event_Date__c format (YYYY-MM-DD)
+    if (!isValidDateOnly(String(req.body.Event_Date__c))) {
+      return res.status(400).json({ message: `Event date is invalid: ${req.body.Event_Date__c} (expected format: YYYY-MM-DD)` });
+    }
+    // Validate Event_Time__c format (HH:MM or HH:MM:SS)
+    if (!isValidTimeOnly(String(req.body.Event_Time__c))) {
+      return res.status(400).json({ message: `Event time is invalid: ${req.body.Event_Time__c} (expected format: HH:MM or HH:MM:SS)` });
+    }
+  // Check if the creator is an admin
+  const creator = await Volunteer.findById(Created_By__c);
     if (!creator) {
       return res.status(404).json({ message: `Created_By__c ${Created_By__c} was not found.` });
     }
@@ -77,6 +112,26 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json({ message: `Event ${event._id} was created sucessfully.`, event });
   } catch (err) {
     console.error(err);
+    // Handle Mongoose validation errors to return friendly 4xx messages
+    if (err && err.name === 'ValidationError') {
+      // Specific friendly message for missing Event_Date__c
+      if (err.errors && err.errors.Event_Date__c && err.errors.Event_Date__c.kind === 'required') {
+        return res.status(400).json({ message: 'Event date is required' });
+      }
+      // Map other common required fields to friendly messages
+      const fieldMap = {
+        Title__c: 'Event title is required',
+        Event_Time__c: 'Event time is required',
+        Location__c: 'Event location is required',
+        Description__c: 'Event description is required'
+      };
+      for (const [field, msg] of Object.entries(fieldMap)) {
+        if (err.errors && err.errors[field]) return res.status(400).json({ message: msg });
+      }
+      // Fallback: join validation messages
+      const messages = Object.values(err.errors || {}).map(e => e.message);
+      return res.status(400).json({ message: messages.join('; ') });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 });

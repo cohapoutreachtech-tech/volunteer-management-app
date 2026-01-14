@@ -106,7 +106,25 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(400).json({ message: `Invalid registration id: ${id}` });
     }
 
-    const updated = await Registration.findByIdAndUpdate(id, req.body, { new: true }).populate('Volunteer__c').populate('Event__c');
+    // Only allow updating the registration status via this endpoint
+    const allowedKeys = ['Registration_Status__c'];
+    const bodyKeys = Object.keys(req.body || {});
+    const invalidKeys = bodyKeys.filter(k => !allowedKeys.includes(k));
+    if (invalidKeys.length > 0) {
+      return res.status(400).json({ message: `Only Registration_Status__c may be updated. Invalid fields: ${invalidKeys.join(', ')}` });
+    }
+
+    if (!('Registration_Status__c' in req.body)) {
+      return res.status(400).json({ message: 'Registration_Status__c is required to update registration status' });
+    }
+
+    const allowedStatuses = ['Registered', 'Confirmed', 'Cancelled', 'Completed', 'No Show'];
+    const newStatus = req.body.Registration_Status__c;
+    if (!allowedStatuses.includes(newStatus)) {
+      return res.status(400).json({ message: `Invalid registration status: ${newStatus}` });
+    }
+
+    const updated = await Registration.findByIdAndUpdate(id, { Registration_Status__c: newStatus }, { new: true }).populate('Volunteer__c').populate('Event__c');
     if (!updated) return res.status(404).json({ message: `Registration ${id} not found` });
     res.json({ message: `Registration ${id} updated`, registration: updated });
   } catch (err) {

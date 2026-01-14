@@ -1,6 +1,29 @@
 const Event = require('../models/Event');
 const Volunteer = require('../models/Volunteer');
 const mongoose = require('mongoose');
+const History = require('../models/History');
+
+// Validate a date-only string in YYYY-MM-DD format
+const isValidDateOnly = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) return false;
+  const d = new Date(val);
+  return !isNaN(d.getTime());
+};
+
+// Validate an ISO-like datetime string that includes a time portion
+const isValidDateTime = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  if (!/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+\-]\d{2}:?\d{2})?$/.test(val)) return false;
+  const t = Date.parse(val);
+  return !isNaN(t);
+};
+
+// Validate a time-only string HH:MM or HH:MM:SS
+const isValidTimeOnly = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  return /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(val);
+};
 
 const requiredFields = [
   'Title__c',
@@ -38,10 +61,15 @@ const createEvent = async (req, res) => {
       return res.status(400).json({ message: 'Created_By__c is required.' });
     }
 
+    // Validate creator id format early to avoid Mongoose CastError
+    if (!mongoose.Types.ObjectId.isValid(String(Created_By__c))) {
+      return res.status(400).json({ message: `Invalid Created_By__c id: ${Created_By__c}` });
+    }
+
     console.log('Checking admin status for user:', Created_By__c);
 
-    // Authenticate admin user
-    const creator = await Volunteer.findById(Created_By__c);
+    // Authenticate admin user (catch any db-level errors and treat as not found)
+    const creator = await Volunteer.findById(Created_By__c).catch(() => null);
     console.log('Volunteer.findById result:', creator);
 
     if (!creator) {
@@ -69,6 +97,27 @@ const createEvent = async (req, res) => {
       Max_Volunteers__c
     } = req.body;
 
+    // Treat undefined/null/empty/whitespace as missing for required event fields
+    const isEmpty = v => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+    if (isEmpty(Event_Date__c)) {
+      return res.status(400).json({ message: 'Event date is required' });
+    }
+    if (isEmpty(Title__c)) return res.status(400).json({ message: 'Event title is required' });
+    if (isEmpty(Event_Time__c)) return res.status(400).json({ message: 'Event time is required' });
+    if (isEmpty(Location__c)) return res.status(400).json({ message: 'Event location is required' });
+    if (isEmpty(Description__c)) return res.status(400).json({ message: 'Event description is required' });
+
+    // Validate dates/times
+    if (!isValidDateOnly(String(Event_Date__c))) {
+      return res.status(400).json({ message: `Event date is invalid: ${Event_Date__c} (expected format: YYYY-MM-DD)` });
+    }
+    if (!isValidTimeOnly(String(Event_Time__c))) {
+      return res.status(400).json({ message: `Event time is invalid: ${Event_Time__c} (expected format: HH:MM or HH:MM:SS)` });
+    }
+    if (Created_Date__c && !isValidDateTime(String(Created_Date__c))) {
+      return res.status(400).json({ message: `Created date is invalid: ${Created_Date__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
+    }
+
     const event = new Event({
       name: 'EVT-000X', // generate or leave for auto-number
       Title__c,
@@ -80,7 +129,7 @@ const createEvent = async (req, res) => {
       Image_2_URL__c,
       Image_3_URL__c,
       Created_By__c,
-      Created_Date__c,
+      Created_Date__c: Created_Date__c ? new Date(Created_Date__c) : new Date(),
       Event_Status__c,
       Max_Volunteers__c
     });
@@ -138,6 +187,17 @@ const updateEvent = async (req, res) => {
     }
     if (updater.Volunteer_Type__c !== 'Administrator') {
       return res.status(403).json({ message: 'Only admins can update events.' });
+    }
+
+    // Validate date/time fields if provided on update
+    if ('Event_Date__c' in req.body && !isValidDateOnly(String(req.body.Event_Date__c))) {
+      return res.status(400).json({ message: `Event date is invalid: ${req.body.Event_Date__c} (expected format: YYYY-MM-DD)` });
+    }
+    if ('Event_Time__c' in req.body && !isValidTimeOnly(String(req.body.Event_Time__c))) {
+      return res.status(400).json({ message: `Event time is invalid: ${req.body.Event_Time__c} (expected format: HH:MM or HH:MM:SS)` });
+    }
+    if ('Created_Date__c' in req.body && req.body.Created_Date__c && !isValidDateTime(String(req.body.Created_Date__c))) {
+      return res.status(400).json({ message: `Created date is invalid: ${req.body.Created_Date__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
     }
 
   const event = await Event.findByIdAndUpdate(normalizedId, req.body, { new: true });

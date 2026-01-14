@@ -14,8 +14,6 @@ const requiredFields = [
   'Community_Service_Hours__c',
   'Offender_Policy_Confirmed__c',
   'Electronic_Signature__c',
-  'Signature_Date__c',
-  'Registration_Date__c',
   'Status__c'
 ];
 
@@ -32,6 +30,22 @@ async function logActivity({ schema, activity_type, user_id, activity_response }
     console.error('Failed to log activity:', err);
   }
 }
+
+// Validate a date-only string in YYYY-MM-DD format
+const isValidDateOnly = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) return false;
+  const d = new Date(val);
+  return !isNaN(d.getTime());
+};
+
+// Validate an ISO-like datetime string that includes a time portion
+const isValidDateTime = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  if (!/^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+\-]\d{2}:?\d{2})?$/.test(val)) return false;
+  const t = Date.parse(val);
+  return !isNaN(t);
+};
 
 // Define the createVolunteer controller
 const createVolunteer = async (req, res) => {
@@ -54,6 +68,26 @@ const createVolunteer = async (req, res) => {
       return res.status(409).json({
         message: "An account with that email already exists, reset your password if you cannot login"
       });
+    }
+
+    // Set server-side defaults for dates if not provided
+    if (!('Signature_Date__c' in req.body) || !req.body.Signature_Date__c) {
+      req.body.Signature_Date__c = new Date().toISOString();
+    }
+    if (!('Registration_Date__c' in req.body) || !req.body.Registration_Date__c) {
+      // Use ISO datetime for registration date as the Volunteer controller validates it as datetime
+      req.body.Registration_Date__c = new Date().toISOString();
+    }
+
+    // Validate date fields
+    if ('Date_of_Birth__c' in req.body && !isValidDateOnly(String(req.body.Date_of_Birth__c))) {
+      return res.status(400).json({ message: `Date of birth is invalid: ${req.body.Date_of_Birth__c} (expected format: YYYY-MM-DD)` });
+    }
+    if ('Signature_Date__c' in req.body && req.body.Signature_Date__c && !isValidDateTime(String(req.body.Signature_Date__c))) {
+      return res.status(400).json({ message: `Signature date is invalid: ${req.body.Signature_Date__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
+    }
+    if ('Registration_Date__c' in req.body && req.body.Registration_Date__c && !isValidDateTime(String(req.body.Registration_Date__c))) {
+      return res.status(400).json({ message: `Registration date is invalid: ${req.body.Registration_Date__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
     }
 
     // Generate a unique name (auto-number simulation)
@@ -314,6 +348,17 @@ const getVolunteerById = async (req, res) => {
     // Validate ObjectId format to avoid CastError returning 500
     if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
       return res.status(400).json({ message: 'Invalid volunteer id format' });
+    }
+
+    // If update contains date fields, validate format before applying
+    if ('Date_of_Birth__c' in req.body && !isValidDateOnly(String(req.body.Date_of_Birth__c))) {
+      return res.status(400).json({ message: `Date of birth is invalid: ${req.body.Date_of_Birth__c} (expected format: YYYY-MM-DD)` });
+    }
+    if ('Signature_Date__c' in req.body && req.body.Signature_Date__c && !isValidDateTime(String(req.body.Signature_Date__c))) {
+      return res.status(400).json({ message: `Signature date is invalid: ${req.body.Signature_Date__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
+    }
+    if ('Registration_Date__c' in req.body && req.body.Registration_Date__c && !isValidDateTime(String(req.body.Registration_Date__c))) {
+      return res.status(400).json({ message: `Registration date is invalid: ${req.body.Registration_Date__c} (expected ISO 8601 datetime, e.g. 2024-03-01T14:30:00Z)` });
     }
 
     const volunteer = await Volunteer.findById(normalizedId);
