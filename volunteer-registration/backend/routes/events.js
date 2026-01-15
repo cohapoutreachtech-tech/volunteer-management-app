@@ -3,7 +3,7 @@ const router = express.Router();
 const Event = require('../models/Event');
 const Volunteer = require('../models/Volunteer');
 const auth = require('../middleware/auth');
-const mongoose = require('mongoose');
+const { isValidSalesforceId } = require('../utils/idValidator');
 
 // List events (public)
 router.get('/', async (req, res) => {
@@ -38,7 +38,7 @@ router.get('/:id', async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'event id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: `Invalid event id: ${normalizedId}` });
     }
 
@@ -91,7 +91,7 @@ router.put('/:id', auth, async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'event id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: `Invalid event id: ${normalizedId}` });
     }
 
@@ -125,7 +125,7 @@ router.delete('/:id', auth, async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'event id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: `Invalid event id: ${normalizedId}` });
     }
 

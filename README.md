@@ -22,11 +22,51 @@ cp .env.example .env
 npm run install-all
 ```
 
-3. Init database with dummy data:
+3. Setup Salesforce
+
+   This application connects to a Salesforce Org to manage data.
+
+   **Option A: Salesforce CLI (Recommended)**
+   This is the easiest method and bypasses "SOAP API Login" restrictions.
+   1. Install [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli).
+   2. Authorize your Org:
+      ```bash
+      sf org login web --alias dev-org --set-default
+      ```
+   3. Verify the application can connect:
+      ```bash
+      node scripts/verify-app-auth.js
+      ```
+
+   **Option B: Environment Variables**
+   Set the following credential in your `.env` file:
+   - `SF_USERNAME`
+   - `SF_PASSWORD`
+   - `SF_LOGIN_URL` (Defaults to https://login.salesforce.com)
+   - `SF_TOKEN` (Security Token, append to password if needed)
+
+   *Note: If your Org blocks SOAP API logins, Option B will fail unless you manually set `SF_ACCESS_TOKEN` and `SF_INSTANCE_URL`.* 
+
+4. Init database with dummy data:
 
 ```
 npm run init-db
 ```
+
+   **Verify Objects Were Created:**
+   After running `init-db`, check your Salesforce Org to confirm the custom objects were created:
+   
+   1. Log into your Salesforce Org
+   2. Click the **⚙️ gear icon** (top right) → **Setup**
+   3. In the Quick Find box, type **"Object Manager"**
+   4. Look for these custom objects:
+      - `Volunteer` (API: `Volunteer__c`)
+      - `Event` (API: `Event__c`)
+      - `Registration` (API: `Registration__c`)
+      - `Volunteer Hours` (API: `VolunteerHours__c`)
+      - `History` (API: `History__c`)
+   
+   *Alternatively, use the **App Launcher** (9 dots icon) and search for "Volunteers" or "Events" to view the data.*
 
 API overview
 

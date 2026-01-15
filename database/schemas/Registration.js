@@ -1,17 +1,10 @@
-const mongoose = require('mongoose');
-
-const registrationSchema = new mongoose.Schema({
-  name: { type: String, required: true }, // REG-{0000} (simulate auto-number)
-  Volunteer__c: { type: mongoose.Schema.Types.ObjectId, ref: 'Volunteer', required: true },
-  Event__c: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
-  Registration_Date__c: { type: Date, default: Date.now, required: true },
-  Registration_Status__c: { type: String, enum: ['Registered', 'Confirmed', 'Cancelled', 'Completed', 'No Show'], default: 'Registered', required: true },
-  Check_In_Time__c: { type: Date },
-  Check_Out_Time__c: { type: Date },
-  Attended__c: { type: Boolean, default: false },
-  Notes__c: { type: String, maxlength: 32768 }
-}, { timestamps: true });
-
-registrationSchema.index({ Volunteer__c: 1, Event__c: 1 }, { unique: true });
-
-module.exports = mongoose.model('VolunteerEventRegistration', registrationSchema);
+module.exports = [
+  { fullName: 'Volunteer__c', label: 'Volunteer', type: 'Lookup', referenceTo: ['Volunteer__c'], relationshipName: 'RegistrationVolunteer', relationshipLabel: 'Volunteer (Registration)', deleteConstraint: 'Restrict', required: true },
+  { fullName: 'Event__c', label: 'Event', type: 'Lookup', referenceTo: ['Event__c'], relationshipName: 'RegistrationEvent', relationshipLabel: 'Event (Registration)', deleteConstraint: 'Restrict', required: true },
+  { fullName: 'Registration_Date__c', label: 'Registration Date', type: 'DateTime', required: true },
+  { fullName: 'Registration_Status__c', label: 'Registration Status', type: 'Picklist', valueSet: { valueSetDefinition: { value: [ { fullName: 'Registered' }, { fullName: 'Confirmed' }, { fullName: 'Cancelled' }, { fullName: 'Completed' }, { fullName: 'No Show' } ] } } },
+  { fullName: 'Check_In_Time__c', label: 'Check In Time', type: 'DateTime' },
+  { fullName: 'Check_Out_Time__c', label: 'Check Out Time', type: 'DateTime' },
+  { fullName: 'Attended__c', label: 'Attended', type: 'Checkbox', defaultValue: 'false' },
+  { fullName: 'Notes__c', label: 'Notes', type: 'LongTextArea', length: 32768, visibleLines: 3 }
+];

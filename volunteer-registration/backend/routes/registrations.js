@@ -4,7 +4,7 @@ const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const Volunteer = require('../models/Volunteer');
 const auth = require('../middleware/auth');
-const mongoose = require('mongoose');
+const { isValidSalesforceId } = require('../utils/idValidator');
 
 // List registrations (protected)
 router.get('/', auth, async (req, res) => {
@@ -37,11 +37,11 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message });
     }
 
-    // Validate ObjectId formats to avoid Mongoose CastError
-    if (!mongoose.Types.ObjectId.isValid(Event__c)) {
+    // Validate Salesforce Id formats
+    if (!isValidSalesforceId(Event__c)) {
       return res.status(400).json({ message: `Invalid Event id: ${Event__c}` });
     }
-    if (!mongoose.Types.ObjectId.isValid(Volunteer__c)) {
+    if (!isValidSalesforceId(Volunteer__c)) {
       return res.status(400).json({ message: `Invalid Volunteer id: ${Volunteer__c}` });
     }
 
@@ -82,7 +82,7 @@ router.get('/:id', auth, async (req, res) => {
     if (!id || id.trim() === '' || id.startsWith(':')) {
       return res.status(400).json({ message: 'registration id is required and cannot be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidSalesforceId(id)) {
       return res.status(400).json({ message: `Invalid registration id: ${id}` });
     }
     const r = await Registration.findById(id).populate('Volunteer__c').populate('Event__c');
@@ -102,7 +102,7 @@ router.put('/:id', auth, async (req, res) => {
     if (!id || id.trim() === '' || id.startsWith(':')) {
       return res.status(400).json({ message: 'registration id is required and cannot be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidSalesforceId(id)) {
       return res.status(400).json({ message: `Invalid registration id: ${id}` });
     }
 

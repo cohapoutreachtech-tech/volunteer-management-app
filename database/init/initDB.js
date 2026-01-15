@@ -1,94 +1,75 @@
-const mongoose = require('mongoose');
-const { volunteers, events, history } = require('./seedData');
-const config = require('../config/mongoConfig');
-const Volunteer = require('../schemas/User');
-const Event = require('../schemas/Event');
-const Registration = require('../schemas/Registration');
-const VolunteerHours = require('../schemas/VolunteerHours');
-const History = require('../schemas/History'); // Use the schema version for init-db
+const path = require('path');
+const { spawnSync } = require('child_process');
+require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
 
-async function validateCollection(Model, name) {
-  const count = await Model.countDocuments();
-  if (count === 0) {
-    throw new Error(`${name} collection is empty after seeding`);
-  }
-  console.log(`✅ ${name} collection validated: ${count} documents`);
-}
+// This init script now runs the orchestration script that applies metadata,
+// waits for propagation, seeds, and optionally recreates the metadata if needed.
+// Always use Salesforce for init (no need to set USE_SALESFORCE anymore).
+const useSalesforce = true;
+const sfConfig = require('../config/salesForceConfig');
+const jsforce = require('jsforce');
 
 async function initializeDB() {
+  // USE_SALESFORCE gate removed — this init uses Salesforce by default.
+
   try {
-    console.log('Connecting to MongoDB...');
-    await mongoose.connect(config.mongoURI, config.options);
-
-    // Clear existing data
-    await Promise.all([
-      Volunteer.deleteMany({}),
-      Event.deleteMany({}),
-      Registration.deleteMany({}),
-      VolunteerHours.deleteMany({})
-    ]);
-
-    // Insert volunteers
-    console.log('Seeding volunteers:', volunteers);
-    const insertedVolunteers = await Volunteer.insertMany(volunteers);
-
-    // Insert events, set Created_By__c to admin volunteer
-    events.forEach(e => e.Created_By__c = insertedVolunteers[0]._id);
-    const insertedEvents = await Event.insertMany(events);
-
-    // Create sample registration
-    const sampleRegistrations = [
-      {
-        name: 'REG-0001',
-        Volunteer__c: insertedVolunteers[1]._id,
-        Event__c: insertedEvents[0]._id,
-        Registration_Status__c: 'Confirmed',
-        Registration_Date__c: new Date()
-      }
-    ];
-    await Registration.insertMany(sampleRegistrations);
-
-    // Create sample volunteer hours
-    const sampleHours = [
-      {
-        name: 'HRS-0001',
-        Volunteer__c: insertedVolunteers[1]._id,
-        Event__c: insertedEvents[0]._id,
-        Shift_Date__c: new Date('2024-03-15'),
-        Clock_In_Time__c: new Date('2024-03-15T10:00:00.000Z'),
-        Clock_Out_Time__c: new Date('2024-03-15T14:00:00.000Z'),
-        Total_Hours__c: 4,
-        Approval_Status__c: 'Approved',
-        Approved_By__c: insertedVolunteers[0]._id,
-        Approved_Date__c: new Date(),
-        Submitted_Date__c: new Date('2024-03-15T14:05:00.000Z')
-      }
-    ];
-    await VolunteerHours.insertMany(sampleHours);
-
-    // Insert a single record in the history table to force its creation
-    await History.create({
-      schema: 'Auth', // or 'Volunteer', 'Event', 'Registration'
-      activity_type: 'create',
-      user_id: insertedVolunteers[0]._id, // Use the admin volunteer's ObjectId
-      activity_timestamp: new Date(),
-      activity_response: 'npm run init-db'
-    });
-
-    // Validate data insertion
-    await Promise.all([
-      validateCollection(Volunteer, 'Volunteers'),
-      validateCollection(Event, 'Events'),
-      validateCollection(Registration, 'Registrations'),
-      validateCollection(VolunteerHours, 'VolunteerHours')
-    ]);
-    console.log('✨ Database initialized successfully');
-  } catch (error) {
-    console.error('❌ Error initializing database:', error);
+    // Ensure auth/log in (will populate SF_ACCESS_TOKEN and SF_INSTANCE_URL when using username/password)
+    const params = await sfConfig.ensureAuthAndLogin();
+    console.log('Salesforce auth ready (mode):', params.authMode);
+  } catch (err) {
+    console.error('❌ Salesforce auth/login failed:', err && err.message ? err.message : err);
     process.exit(1);
-  } finally {
-    await mongoose.disconnect();
   }
+
+  // After login, check if our custom objects already exist. If they do,
+  // perform a destructive recreate (delete+create) and then seed. Otherwise
+  // run the regular orchestrator which applies and seeds (and may recreate on failure).
+  const conn = new jsforce.Connection({ instanceUrl: process.env.SF_INSTANCE_URL, accessToken: process.env.SF_ACCESS_TOKEN });
+  const objectsToCheck = ['Event__c', 'Volunteer__c', 'Registration__c', 'VolunteerHours__c', 'History__c'];
+  let anyExist = false;
+  try {
+    for (const name of objectsToCheck) {
+      try {
+        const existing = await conn.metadata.read('CustomObject', name).catch(() => null);
+        if (existing && existing.fullName) {
+          console.log(`Found existing CustomObject: ${name}`);
+          anyExist = true;
+          break;
+        }
+      } catch (e) {
+        // ignore and continue
+      }
+    }
+  } catch (e) {
+    console.warn('Warning: failed to check existing metadata, proceeding with orchestrator:', e && e.message ? e.message : e);
+  }
+
+  if (anyExist) {
+    console.log('Existing Salesforce objects detected — performing destructive recreate then seeding.');
+    const recreate = path.resolve(__dirname, 'recreateMetadata.js');
+    const seedRunner = path.resolve(__dirname, 'runSeed.js');
+
+    // Run destructive recreate (requires --confirm)
+    const recRes = spawnSync('node', [recreate, '--confirm'], { stdio: 'inherit', shell: true, env: { ...process.env, USE_SALESFORCE: '1' } });
+    if (recRes.status !== 0) {
+      console.error('Destructive recreate failed. Aborting.');
+      process.exit(recRes.status || 1);
+    }
+
+    // Wait for propagation
+    console.log('Waiting 60 seconds for metadata propagation after recreate...');
+    await new Promise(r => setTimeout(r, 60 * 1000));
+
+    // Run seed runner
+    const seedRes = spawnSync('node', [seedRunner], { stdio: 'inherit', shell: true, env: { ...process.env, USE_SALESFORCE: '1' } });
+    process.exit(seedRes.status === 0 ? 0 : (seedRes.status || 1));
+  }
+
+  // No existing objects found — run the regular orchestrator
+  const orchestration = path.resolve(__dirname, 'applyAndSeed.js');
+  console.log('No existing Salesforce objects detected. Running orchestrator:', orchestration);
+  const res = spawnSync('node', [orchestration], { stdio: 'inherit', shell: true, env: { ...process.env, USE_SALESFORCE: '1' } });
+  process.exit(res.status === 0 ? 0 : (res.status || 1));
 }
 
 // Run initialization if this script is run directly

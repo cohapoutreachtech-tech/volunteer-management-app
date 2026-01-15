@@ -1,21 +1,16 @@
-const mongoose = require('mongoose');
-
-const eventSchema = new mongoose.Schema({
-  name: { type: String, required: true }, // EVT-{0000} (simulate auto-number)
-  Title__c: { type: String, required: true, maxlength: 255 },
-  Event_Date__c: { type: Date, required: true },
-  Event_Time__c: { type: String, maxlength: 20, required: true },
-  Location__c: { type: String, maxlength: 255, required: true },
-  Description__c: { type: String, maxlength: 32768, required: true },
-  Image_1_URL__c: { type: String, maxlength: 255 },
-  Image_2_URL__c: { type: String, maxlength: 255 },
-  Image_3_URL__c: { type: String, maxlength: 255 },
-  Created_By__c: { type: mongoose.Schema.Types.ObjectId, ref: 'Volunteer', required: true },
-  Created_Date__c: { type: Date, default: Date.now, required: true },
-  Event_Status__c: { type: String, enum: ['Draft', 'Published', 'Completed', 'Cancelled'], default: 'Published', required: true },
-  Max_Volunteers__c: { type: Number },
-  Registered_Volunteers__c: { type: Number, default: 0 },
-  Checked_In_Volunteers__c: { type: Number, default: 0 }
-});
-
-module.exports = mongoose.model('Event', eventSchema);
+module.exports = [
+  { fullName: 'Title__c', label: 'Title', type: 'Text', length: 255, required: true },
+  { fullName: 'Event_Date__c', label: 'Event Date', type: 'Date', required: true },
+  { fullName: 'Event_Time__c', label: 'Event Time', type: 'Text', length: 20 },
+  { fullName: 'Location__c', label: 'Location', type: 'Text', length: 255 },
+  { fullName: 'Description__c', label: 'Description', type: 'LongTextArea', length: 32768, visibleLines: 3 },
+  { fullName: 'Image_1_URL__c', label: 'Image 1 URL', type: 'Text', length: 255 },
+  { fullName: 'Image_2_URL__c', label: 'Image 2 URL', type: 'Text', length: 255 },
+  { fullName: 'Image_3_URL__c', label: 'Image 3 URL', type: 'Text', length: 255 },
+  { fullName: 'Created_By__c', label: 'Created By', type: 'Lookup', referenceTo: ['Volunteer__c'], relationshipName: 'EventCreatedBy', relationshipLabel: 'Created By (Event)', deleteConstraint: 'Restrict' },
+  { fullName: 'Created_Date__c', label: 'Created Date', type: 'DateTime' },
+  { fullName: 'Event_Status__c', label: 'Event Status', type: 'Picklist', valueSet: { valueSetDefinition: { value: [ { fullName: 'Draft' }, { fullName: 'Published' }, { fullName: 'Completed' }, { fullName: 'Cancelled' } ] } } },
+  { fullName: 'Max_Volunteers__c', label: 'Max Volunteers', type: 'Number', precision: 18, scale: 0 },
+  { fullName: 'Registered_Volunteers__c', label: 'Registered Volunteers', type: 'Number', precision: 18, scale: 0 },
+  { fullName: 'Checked_In_Volunteers__c', label: 'Checked In Volunteers', type: 'Number', precision: 18, scale: 0 }
+];
