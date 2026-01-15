@@ -70,4 +70,48 @@ const events = [
 
 const history = [];
 
-module.exports = { volunteers, events, history };
+// Registrations - these will need to be linked to Volunteer and Event IDs after they're created
+const registrations = [
+  {
+    name: 'REG-0001',
+    // Volunteer__c and Event__c will be set dynamically after records are created
+    Registration_Date__c: new Date(),
+    Registration_Status__c: 'Confirmed',
+    Attended__c: false,
+    Notes__c: 'First registration for testing'
+  },
+  {
+    name: 'REG-0002',
+    Registration_Date__c: new Date(),
+    Registration_Status__c: 'Confirmed',
+    Attended__c: false,
+    Notes__c: 'Second registration for testing'
+  }
+];
+
+// Volunteer Hours - these will also need to be linked after records are created
+const volunteerHours = [
+  {
+    name: 'VH-0001',
+    // Volunteer__c and Event__c will be set dynamically
+    Shift_Date__c: new Date('2024-03-15'),
+    Clock_In_Time__c: new Date('2024-03-15T09:00:00Z'),
+    Clock_Out_Time__c: new Date('2024-03-15T12:00:00Z'),
+    Total_Hours__c: 3.0,
+    Approval_Status__c: 'Pending',
+    Submitted_Date__c: new Date(),
+    Notes__c: 'Morning shift at community cleanup'
+  },
+  {
+    name: 'VH-0002',
+    Shift_Date__c: new Date('2024-03-20'),
+    Clock_In_Time__c: new Date('2024-03-20T14:00:00Z'),
+    Clock_Out_Time__c: new Date('2024-03-20T17:30:00Z'),
+    Total_Hours__c: 3.5,
+    Approval_Status__c: 'Approved',
+    Submitted_Date__c: new Date(),
+    Notes__c: 'Afternoon shift at food drive'
+  }
+];
+
+module.exports = { volunteers, events, history, registrations, volunteerHours };
