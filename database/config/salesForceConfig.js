@@ -20,7 +20,6 @@ function getSalesforceConfig() {
   const {
     SF_ACCESS_TOKEN,
     SF_INSTANCE_URL,
-    SF_INSTANCE,
     SF_USERNAME,
     SF_PASSWORD,
     SF_LOGIN_URL,
@@ -43,12 +42,10 @@ function getSalesforceConfig() {
   };
 
   // Priority: access token + instanceUrl (preferred for CLI-authorized flows)
-  // Accept either SF_INSTANCE_URL or SF_INSTANCE (historical naming) for an instance URL.
-  const instanceUrlVal = SF_INSTANCE_URL || SF_INSTANCE;
-  if (SF_ACCESS_TOKEN && instanceUrlVal) {
+  if (SF_ACCESS_TOKEN && SF_INSTANCE_URL) {
     config.authMode = 'token';
     config.accessToken = SF_ACCESS_TOKEN;
-    config.instanceUrl = instanceUrlVal;
+    config.instanceUrl = SF_INSTANCE_URL;
   } else if (SF_USERNAME && SF_PASSWORD) {
     // username/password + optional loginUrl (supports security token appended to password)
     config.authMode = 'userpass';

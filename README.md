@@ -1,6 +1,6 @@
 # Volunteer Management API
 
-This repository contains a simple REST API built with Node.js, Express, and MongoDB (Mongoose) for managing Volunteers, Events, and Registrations (shift sign-ups).
+This repository contains a simple REST API built with Node.js, Express, and Salesforce (sfdx) for managing Volunteers, Events, and Registrations (shift sign-ups).
 
 Features
 - User registration and login (username/password) with JWT-based authentication
@@ -13,7 +13,7 @@ Getting started
 
 ```
 cp .env.example .env
-# then edit .env to set MONGODB secrets and JWT_SECRET
+# then edit .env to set SF secrets and JWT_SECRET
 ```
 
 2. Install dependencies:
@@ -52,6 +52,14 @@ npm run install-all
 ```
 npm run init-db
 ```
+
+   **⚠️ Known Issue:** Due to limitations with jsforce metadata API, some fields may not be created properly despite showing success. If seeding fails with "No such column" errors:
+   
+   1. Check if objects/fields exist in Salesforce Setup → Object Manager
+   2. If fields are missing, you may need to create them manually via the Salesforce UI
+   3. Then run the seed script: `node database/init/runSeed.js`
+   
+   Alternatively, wait 5-10 minutes for metadata propagation and retry the seed.
 
    **Verify Objects Were Created:**
    After running `init-db`, check your Salesforce Org to confirm the custom objects were created:

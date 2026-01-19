@@ -2,8 +2,8 @@
 module.exports = [
   { fullName: 'First_Name__c', label: 'First Name', type: 'Text', length: 80, required: true },
   { fullName: 'Last_Name__c', label: 'Last Name', type: 'Text', length: 80, required: true },
-  { fullName: 'Email__c', label: 'Email', type: 'Email' },
-  { fullName: 'Phone__c', label: 'Phone', type: 'Phone' },
+  { fullName: 'Email__c', label: 'Email', type: 'Text', length: 255 },
+  { fullName: 'Phone__c', label: 'Phone', type: 'Text', length: 40 },
   { fullName: 'Date_of_Birth__c', label: 'Date of Birth', type: 'Date' },
   { fullName: 'Volunteer_Type__c', label: 'Volunteer Type', type: 'Picklist', valueSet: { valueSetDefinition: { value: [ { fullName: 'Individual' }, { fullName: 'Company Representative' }, { fullName: 'Administrator' } ] } } },
   { fullName: 'Company_Name__c', label: 'Company Name', type: 'Text', length: 255 },
