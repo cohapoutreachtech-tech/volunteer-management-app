@@ -26,6 +26,32 @@ npm run install-all
 
    This application connects to a Salesforce Org to manage data.
 
+   **Create a Free Salesforce Developer Edition Account**
+   
+   If you don't have a Salesforce account yet, follow these steps:
+   
+   1. Go to [https://developer.salesforce.com/signup](https://developer.salesforce.com/signup)
+   2. Fill out the registration form:
+      - **First Name** and **Last Name**
+      - **Email** (use a valid email - you'll need to verify it)
+      - **Role**: Select "Developer"
+      - **Company**: Can be your name or organization
+      - **Country**: Select your country
+      - **Postal Code**: Your postal/zip code
+      - Check the box to agree to the Master Subscription Agreement
+   3. Click **Sign me up**
+   4. Check your email for the verification link from Salesforce
+   5. Click the verification link and set your password
+   6. You'll be redirected to your new Salesforce Developer Org
+   7. **Save your credentials** - you'll need them for authentication
+   
+   **Important Notes:**
+   - Developer Edition accounts are **completely free** forever
+   - They never expire as long as you log in at least once every 6 months
+   - Each Developer Edition org is a separate environment (perfect for testing)
+   - You can create multiple Developer Edition accounts if needed
+   - Your username will be your email address
+
    **Salesforce CLI (Recommended)**
    This is the easiest method and bypasses "SOAP API Login" restrictions.
    1. Install [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli).
@@ -33,6 +59,7 @@ npm run install-all
       ```bash
       sf org login web --alias dev-org --set-default
       ```
+      This will open a browser window - log in with your Developer Edition credentials.
    3. Verify the application can connect:
       ```bash
       node scripts/verify-app-auth.js
