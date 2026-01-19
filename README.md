@@ -26,7 +26,7 @@ npm run install-all
 
    This application connects to a Salesforce Org to manage data.
 
-   **Option A: Salesforce CLI (Recommended)**
+   **Salesforce CLI (Recommended)**
    This is the easiest method and bypasses "SOAP API Login" restrictions.
    1. Install [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli).
    2. Authorize your Org:
@@ -37,15 +37,6 @@ npm run install-all
       ```bash
       node scripts/verify-app-auth.js
       ```
-
-   **Option B: Environment Variables**
-   Set the following credential in your `.env` file:
-   - `SF_USERNAME`
-   - `SF_PASSWORD`
-   - `SF_LOGIN_URL` (Defaults to https://login.salesforce.com)
-   - `SF_TOKEN` (Security Token, append to password if needed)
-
-   *Note: If your Org blocks SOAP API logins, Option B will fail unless you manually set `SF_ACCESS_TOKEN` and `SF_INSTANCE_URL`.* 
 
 4. Init database with dummy data:
 
@@ -95,6 +86,3 @@ curl --request GET
 	--url 'https://sex-offenders.p.rapidapi.com/sexoffender?firstName=Joseph&lastName=Nigro&zipcode=10465&mode=extensive' 
 	--header 'x-rapidapi-host: sex-offenders.p.rapidapi.com' 
 	--header 'x-rapidapi-key: <key>'
-
-
-[Full application repo, after salesforce poc API will live in this repo only](https://github.com/cohapoutreachtech-tech/volunteer-management-website/tree/shreya/frontend-initial)
