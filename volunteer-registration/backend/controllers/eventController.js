@@ -1,6 +1,6 @@
 const Event = require('../models/Event');
 const Volunteer = require('../models/Volunteer');
-const mongoose = require('mongoose');
+const { isValidSalesforceId } = require('../utils/idValidator');
 
 const requiredFields = [
   'Title__c',
@@ -123,7 +123,7 @@ const updateEvent = async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'event id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: 'Invalid event id format' });
     }
 
@@ -178,7 +178,7 @@ const deleteEvent = async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'event id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: 'Invalid event id format' });
     }
 
@@ -233,7 +233,7 @@ const getEvent = async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'event id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: 'Invalid event id format' });
     }
 

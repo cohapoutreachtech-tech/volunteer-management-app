@@ -4,11 +4,18 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
-// Function to log activity
+// Function to log activity (Salesforce-compatible)
 const logActivity = async (activityData) => {
   try {
-    const activity = new History(activityData);
-    await activity.save();
+    // Convert MongoDB-style fields to Salesforce fields
+    const sfData = {
+      Schema__c: activityData.schema || activityData.Schema__c,
+      Activity_Type__c: activityData.activity_type || activityData.Activity_Type__c,
+      User__c: activityData.user_id || activityData.User__c,
+      Activity_Response__c: activityData.activity_response || activityData.Activity_Response__c,
+      Activity_Timestamp__c: new Date().toISOString()
+    };
+    await History.create(sfData);
   } catch (err) {
     console.error('Error logging activity:', err);
   }
@@ -64,19 +71,25 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: `Invalid email ${Email__c}` });
     }
 
-    const isMatch = await bcrypt.compare(password, volunteer.Pass_Hash);
+    // Check if Pass_Hash__c exists and is not empty
+    if (!volunteer.Pass_Hash__c) {
+      console.error('Pass_Hash__c is missing for volunteer:', volunteer.Id);
+      return res.status(500).json({ message: 'Password hash not found for this user.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, volunteer.Pass_Hash__c);
     if (!isMatch) {
       await logActivity({
         schema: 'Auth',
         activity_type: 'login',
-        user_id: volunteer._id,
+        user_id: volunteer.Id,
         activity_response: 'Invalid credentials'
       });
       return res.status(401).json({ message: 'Invalid password.' });
     }
 
     const payload = {
-      id: volunteer._id,
+      id: volunteer.Id,
       Email__c: volunteer.Email__c,
       First_Name__c: volunteer.First_Name__c,
       Last_Name__c: volunteer.Last_Name__c,
@@ -88,8 +101,8 @@ exports.login = async (req, res) => {
     await logActivity({
       schema: 'Auth',
       activity_type: 'login',
-      user_id: volunteer._id,
-      activity_response: `Login successful | user_id: ${volunteer._id}`
+      user_id: volunteer.Id,
+      activity_response: `Login successful | user_id: ${volunteer.Id}`
     });
 
     res.json({

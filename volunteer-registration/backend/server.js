@@ -1,14 +1,20 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') }); // Load .env from root
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./config/db'); // <-- fixed path
+const salesforce = require('./services/salesforce'); // Use Salesforce instead of MongoDB
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to DB
-connectDB();
+// Connect to Salesforce
+salesforce.connect()
+  .then(() => console.log('✅ Connected to Salesforce'))
+  .catch(err => {
+    console.error('❌ Salesforce connection error:', err.message);
+    process.exit(1);
+  });
 
 // Routes
 app.use('/auth', require('./routes/auth')); // <-- fixed path

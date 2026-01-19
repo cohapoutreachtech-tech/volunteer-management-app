@@ -1,10 +1,17 @@
-const mongoose = require('mongoose');
 const VolunteerHours = require('../models/VolunteerHours');
 const History = require('../models/History');
+const { isValidSalesforceId } = require('../utils/idValidator');
 
+// Log activity to History (Salesforce-compatible)
 async function logActivity({ schema, activity_type, user_id, activity_response }) {
   try {
-    await History.create({ schema, activity_type, user_id, activity_response });
+    await History.create({
+      Schema__c: schema,
+      Activity_Type__c: activity_type,
+      User__c: user_id,
+      Activity_Response__c: activity_response,
+      Activity_Timestamp__c: new Date().toISOString()
+    });
   } catch (err) {
     console.error('Failed to log activity:', err);
   }
@@ -33,40 +40,53 @@ const createShift = async (req, res) => {
       return res.status(400).json({ message: 'Volunteer__c, Shift_Date__c and Clock_In_Time__c are required.' });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(String(Volunteer__c))) {
+    if (!isValidSalesforceId(String(Volunteer__c))) {
       return res.status(400).json({ message: 'Invalid Volunteer__c format' });
     }
-    if (Event__c && !mongoose.Types.ObjectId.isValid(String(Event__c))) {
+    if (Event__c && !isValidSalesforceId(String(Event__c))) {
       return res.status(400).json({ message: 'Invalid Event__c format' });
     }
-
-    const count = await VolunteerHours.countDocuments();
-    const name = `HRS-${(count + 1).toString().padStart(4, '0')}`;
 
     const inDate = new Date(Clock_In_Time__c);
     const outDate = Clock_Out_Time__c ? new Date(Clock_Out_Time__c) : undefined;
 
     const total = computeTotalHours(inDate, outDate);
 
-    const shift = new VolunteerHours({
-      name,
+    // Prepare shift data for Salesforce
+    const shiftData = {
       Volunteer__c,
       Event__c: Event__c || undefined,
-      Shift_Date__c: new Date(Shift_Date__c),
-      Clock_In_Time__c: inDate,
-      Clock_Out_Time__c: outDate,
+      Shift_Date__c: new Date(Shift_Date__c).toISOString(),
+      Clock_In_Time__c: inDate.toISOString(),
+      Clock_Out_Time__c: outDate ? outDate.toISOString() : undefined,
       Total_Hours__c: typeof total !== 'undefined' ? total : 0,
-      Submitted_Date__c: new Date(),
+      Submitted_Date__c: new Date().toISOString(),
       Notes__c: Notes__c || undefined,
       Approval_Status__c: 'Pending'
-    });
+    };
 
-    await shift.save();
-    await logActivity({ schema: 'VolunteerHours', activity_type: 'create', user_id: req.user?.id || null, activity_response: `VolunteerHours ${shift._id} created` });
-    res.status(201).json({ message: `VolunteerHours ${shift._id} created`, shift });
+    // Create shift in Salesforce
+    const result = await VolunteerHours.create(shiftData);
+    
+    await logActivity({ 
+      schema: 'VolunteerHours', 
+      activity_type: 'create', 
+      user_id: req.user?.id || null, 
+      activity_response: `VolunteerHours ${result.id} created` 
+    });
+    
+    res.status(201).json({ 
+      message: `VolunteerHours ${result.id} created`, 
+      shift: { id: result.id, ...shiftData } 
+    });
   } catch (err) {
     console.error('Create shift error:', err);
-    await logActivity({ schema: 'VolunteerHours', activity_type: 'create', user_id: req.user?.id || null, activity_response: err.message });
+    await logActivity({ 
+      schema: 'VolunteerHours', 
+      activity_type: 'create', 
+      user_id: req.user?.id || null, 
+      activity_response: err.message 
+    });
     res.status(500).json({ message: 'Server error.' });
   }
 };
@@ -79,7 +99,7 @@ const updateShift = async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'volunteer hours id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: 'Invalid volunteer hours id format' });
     }
 
@@ -96,18 +116,24 @@ const updateShift = async (req, res) => {
     const shift = await VolunteerHours.findById(normalizedId);
     if (!shift) return res.status(404).json({ message: `VolunteerHours ${normalizedId} not found` });
 
-    if (updates.Shift_Date__c) shift.Shift_Date__c = new Date(updates.Shift_Date__c);
-    if (updates.Clock_In_Time__c) shift.Clock_In_Time__c = new Date(updates.Clock_In_Time__c);
-    if (updates.Clock_Out_Time__c) shift.Clock_Out_Time__c = new Date(updates.Clock_Out_Time__c);
-    if ('Notes__c' in updates) shift.Notes__c = updates.Notes__c;
+    // Prepare update data
+    const updateData = {};
+    if (updates.Shift_Date__c) updateData.Shift_Date__c = new Date(updates.Shift_Date__c).toISOString();
+    if (updates.Clock_In_Time__c) updateData.Clock_In_Time__c = new Date(updates.Clock_In_Time__c).toISOString();
+    if (updates.Clock_Out_Time__c) updateData.Clock_Out_Time__c = new Date(updates.Clock_Out_Time__c).toISOString();
+    if ('Notes__c' in updates) updateData.Notes__c = updates.Notes__c;
 
-    const total = computeTotalHours(shift.Clock_In_Time__c, shift.Clock_Out_Time__c);
-    if (typeof total !== 'undefined') shift.Total_Hours__c = total;
-    shift.Submitted_Date__c = new Date();
+    // Calculate total hours if times are being updated
+    const clockIn = updateData.Clock_In_Time__c || shift.Clock_In_Time__c;
+    const clockOut = updateData.Clock_Out_Time__c || shift.Clock_Out_Time__c;
+    const total = computeTotalHours(clockIn, clockOut);
+    if (typeof total !== 'undefined') updateData.Total_Hours__c = total;
+    updateData.Submitted_Date__c = new Date().toISOString();
 
-    await shift.save();
-    await logActivity({ schema: 'VolunteerHours', activity_type: 'update', user_id: req.user?.id || null, activity_response: `VolunteerHours ${shift._id} updated` });
-    res.json({ message: `VolunteerHours ${shift._id} updated`, shift });
+    const updated = await VolunteerHours.findByIdAndUpdate(normalizedId, updateData, { new: true });
+    const updatedId = updated.id || updated.Id || normalizedId;
+    await logActivity({ schema: 'VolunteerHours', activity_type: 'update', user_id: req.user?.id || null, activity_response: `VolunteerHours ${updatedId} updated` });
+    res.json({ message: `VolunteerHours ${updatedId} updated`, shift: updated });
   } catch (err) {
     console.error('Update shift error:', err);
     await logActivity({ schema: 'VolunteerHours', activity_type: 'update', user_id: req.user?.id || null, activity_response: err.message });
@@ -119,7 +145,7 @@ const updateShift = async (req, res) => {
 const getShiftsByEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    if (!eventId || !mongoose.Types.ObjectId.isValid(String(eventId))) {
+    if (!eventId || !isValidSalesforceId(String(eventId))) {
       return res.status(400).json({ message: 'Invalid event id' });
     }
     const shifts = await VolunteerHours.find({ Event__c: eventId });
@@ -134,7 +160,7 @@ const getShiftsByEvent = async (req, res) => {
 const getShiftsByVolunteer = async (req, res) => {
   try {
     const { volunteerId } = req.params;
-    if (!volunteerId || !mongoose.Types.ObjectId.isValid(String(volunteerId))) {
+    if (!volunteerId || !isValidSalesforceId(String(volunteerId))) {
       return res.status(400).json({ message: 'Invalid volunteer id' });
     }
     const shifts = await VolunteerHours.find({ Volunteer__c: volunteerId });
@@ -149,7 +175,7 @@ const getShiftsByVolunteer = async (req, res) => {
 const getShiftsByEventVolunteer = async (req, res) => {
   try {
     const { eventId, volunteerId } = req.params;
-    if (!eventId || !volunteerId || !mongoose.Types.ObjectId.isValid(String(eventId)) || !mongoose.Types.ObjectId.isValid(String(volunteerId))) {
+    if (!eventId || !volunteerId || !isValidSalesforceId(String(eventId)) || !isValidSalesforceId(String(volunteerId))) {
       return res.status(400).json({ message: 'Invalid event id or volunteer id' });
     }
     const shifts = await VolunteerHours.find({ Event__c: eventId, Volunteer__c: volunteerId });
@@ -171,15 +197,6 @@ const getAllShifts = async (req, res) => {
   }
 };
 
-module.exports = {
-  createShift,
-  updateShift,
-  getAllShifts,
-  getShiftsByEvent,
-  getShiftsByVolunteer,
-  getShiftsByEventVolunteer
-};
-
 // DELETE /volunteerhours/:id - delete a shift
 const deleteShift = async (req, res) => {
   try {
@@ -188,14 +205,15 @@ const deleteShift = async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'volunteer hours id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: 'Invalid volunteer hours id format' });
     }
 
     const shift = await VolunteerHours.findByIdAndDelete(normalizedId);
     if (!shift) return res.status(404).json({ message: `VolunteerHours ${normalizedId} not found` });
-    await logActivity({ schema: 'VolunteerHours', activity_type: 'delete', user_id: req.user?.id || null, activity_response: `VolunteerHours ${normalizedId} deleted` });
-    res.json({ message: `VolunteerHours ${normalizedId} deleted` });
+    const deletedId = shift.id || shift.Id || normalizedId;
+    await logActivity({ schema: 'VolunteerHours', activity_type: 'delete', user_id: req.user?.id || null, activity_response: `VolunteerHours ${deletedId} deleted` });
+    res.json({ message: `VolunteerHours ${deletedId} deleted` });
   } catch (err) {
     console.error('Delete shift error:', err);
     await logActivity({ schema: 'VolunteerHours', activity_type: 'delete', user_id: req.user?.id || null, activity_response: err.message });
@@ -203,5 +221,12 @@ const deleteShift = async (req, res) => {
   }
 };
 
-// attach export
-module.exports.deleteShift = deleteShift;
+module.exports = {
+  createShift,
+  updateShift,
+  deleteShift,
+  getAllShifts,
+  getShiftsByEvent,
+  getShiftsByVolunteer,
+  getShiftsByEventVolunteer
+};

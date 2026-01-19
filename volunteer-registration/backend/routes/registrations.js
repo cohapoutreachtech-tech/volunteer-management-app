@@ -10,8 +10,8 @@ const { isValidSalesforceId } = require('../utils/idValidator');
 router.get('/', auth, async (req, res) => {
   try {
     const registrations = await Registration.find()
-      .populate('Volunteer__c')
-      .populate('Event__c');
+      
+      ;
     res.json(registrations);
   } catch (err) {
     console.error(err);
@@ -55,19 +55,25 @@ router.post('/', auth, async (req, res) => {
     const existing = await Registration.findOne({ Volunteer__c, Event__c });
     if (existing) return res.status(400).json({ message: 'Already registered for this event' });
 
-    const count = await Registration.countDocuments();
-    const name = `REG-${(count + 1).toString().padStart(4, '0')}`;
-
     // Ensure the authenticated user id is attached to the registration (model requires user_id)
     const userId = req.user?.id || req.user?._id;
     if (!userId) {
       return res.status(400).json({ message: 'Authenticated user (user_id) is required to create a registration' });
     }
 
-    const reg = new Registration({ name, Volunteer__c, Event__c, user_id: userId });
-    await reg.save();
-    const result = await Registration.findById(reg._id).populate('Volunteer__c').populate('Event__c');
-    res.status(201).json(result);
+    // Create registration in Salesforce
+    const registrationData = { 
+      Volunteer__c, 
+      Event__c,
+      Registration_Date__c: new Date().toISOString(),
+      Registration_Status__c: 'Confirmed'
+    };
+    
+    const result = await Registration.create(registrationData);
+    
+    // Fetch the created registration with related data
+    const registration = await Registration.findById(result.id);
+    res.status(201).json(registration);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -85,7 +91,7 @@ router.get('/:id', auth, async (req, res) => {
     if (!isValidSalesforceId(id)) {
       return res.status(400).json({ message: `Invalid registration id: ${id}` });
     }
-    const r = await Registration.findById(id).populate('Volunteer__c').populate('Event__c');
+    const r = await Registration.findById(id);
     if (!r) return res.status(404).json({ message: `Registration ${id} not found` });
     res.json(r);
   } catch (err) {
@@ -106,8 +112,12 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(400).json({ message: `Invalid registration id: ${id}` });
     }
 
-    const updated = await Registration.findByIdAndUpdate(id, req.body, { new: true }).populate('Volunteer__c').populate('Event__c');
-    if (!updated) return res.status(404).json({ message: `Registration ${id} not found` });
+    // Check if registration exists first
+    const existing = await Registration.findById(id);
+    if (!existing) return res.status(404).json({ message: `Registration ${id} not found` });
+
+    // Update the registration
+    const updated = await Registration.findByIdAndUpdate(id, req.body);
     res.json({ message: `Registration ${id} updated`, registration: updated });
   } catch (err) {
     console.error('Error updating registration:', err);
@@ -129,10 +139,10 @@ router.get('/:volunteerId/:eventId', auth, async (req, res) => {
     }
 
     // Only check ObjectId if not empty
-    if (!mongoose.Types.ObjectId.isValid(volunteerId)) {
+    if (!isValidSalesforceId(volunteerId)) {
       return res.status(400).json({ message: `Invalid Volunteer__c ${volunteerId}` });
     }
-    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+    if (!isValidSalesforceId(eventId)) {
       return res.status(400).json({ message: `Invalid Event__c ${eventId}` });
     }
     
@@ -155,7 +165,7 @@ router.get('/:volunteerId/:eventId', auth, async (req, res) => {
     const r = await Registration.findOne({ 
       Volunteer__c: volunteerId, 
       Event__c: eventId 
-    }).populate('Volunteer__c').populate('Event__c');
+    });
     
     if (!r) {
       return res.status(404).json({ 
@@ -176,13 +186,13 @@ router.get('/event/:eventId', auth, async (req, res) => {
     if (!eventId || eventId.trim() === '' || eventId.startsWith(':')) {
       return res.status(400).json({ message: 'Event__c is required and cannot be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+    if (!isValidSalesforceId(eventId)) {
       return res.status(400).json({ message: `Invalid Event__c ${eventId}` });
     }
     
     const registrations = await Registration.find({ Event__c: eventId })
-      .populate('Volunteer__c')
-      .populate('Event__c');
+      
+      ;
     if (!registrations || registrations.length === 0) {
       return res.status(404).json({ 
         message: `No registrations found for Event__c ${eventId}` 
@@ -204,12 +214,12 @@ router.get('/volunteer/:volunteerId/events', auth, async (req, res) => {
     if (!volunteerId || volunteerId.trim() === '' || volunteerId.startsWith(':')) {
       return res.status(400).json({ message: 'Volunteer__c is required and cannot be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(volunteerId)) {
+    if (!isValidSalesforceId(volunteerId)) {
       return res.status(400).json({ message: `Invalid Volunteer__c ${volunteerId}` });
     }
     
     const registrations = await Registration.find({ Volunteer__c: volunteerId })
-      .populate('Event__c');
+      ;
     if (!registrations || registrations.length === 0) {
       return res.status(200).json({ 
         message: `No events found for Volunteer__c ${volunteerId}`,
@@ -236,15 +246,15 @@ router.get('/volunteer/:volunteerId/registrations', auth, async (req, res) => {
     if (!volunteerId || volunteerId.trim() === '' || volunteerId.startsWith(':')) {
       return res.status(400).json({ message: 'Volunteer__c is required and cannot be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(volunteerId)) {
+    if (!isValidSalesforceId(volunteerId)) {
       return res.status(400).json({ 
         message: `Invalid Volunteer__c ${volunteerId}` 
       });
     }
     
     const registrations = await Registration.find({ Volunteer__c: volunteerId })
-      .populate('Volunteer__c')
-      .populate('Event__c');
+      
+      ;
     if (!registrations || registrations.length === 0) {
       return res.status(200).json({ 
         message: `No registrations found for Volunteer__c ${volunteerId}`,
@@ -271,7 +281,7 @@ router.delete('/:id', auth, async (req, res) => {
     if (!id || id.trim() === '' || id.startsWith(':')) {
       return res.status(400).json({ message: 'registration id is required and cannot be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidSalesforceId(id)) {
       return res.status(400).json({ message: `Invalid registration id: ${id}` });
     }
 
@@ -302,14 +312,14 @@ router.get('/check/:volunteerId/:eventId', auth, async (req, res) => {
       });
     }
     // Only check ObjectId if not empty
-    if (!mongoose.Types.ObjectId.isValid(volunteerId)) {
+    if (!isValidSalesforceId(volunteerId)) {
       return res.status(200).json({
         message: `Invalid Volunteer__c ${volunteerId}`,
         exists: false,
         registration: null
       });
     }
-    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+    if (!isValidSalesforceId(eventId)) {
       return res.status(200).json({
         message: `Invalid Event__c ${eventId}`,
         exists: false,
@@ -340,7 +350,7 @@ router.get('/check/:volunteerId/:eventId', auth, async (req, res) => {
     const registration = await Registration.findOne({ 
       Volunteer__c: volunteerId, 
       Event__c: eventId 
-    }).populate('Volunteer__c').populate('Event__c');
+    });
     
     if (!registration) {
       return res.status(200).json({ 
@@ -361,3 +371,5 @@ router.get('/check/:volunteerId/:eventId', auth, async (req, res) => {
 });
 
 module.exports = router;
+
+

@@ -67,14 +67,21 @@ router.post('/', auth, async (req, res) => {
     if (creator.Volunteer_Type__c !== 'Administrator') {
       return res.status(403).json({ message: `Only admins can create events. Created_By__c ${Created_By__c} is not an admin.` });
     }
-    // Generate a unique name for the event (auto-number simulation)
-    const count = await Event.countDocuments();
-    const name = `EVT-${(count + 1).toString().padStart(4, '0')}`;
-    let { event_id } = req.body;
-    if (!event_id) event_id = `evt_${Date.now()}`;
-    const event = new Event({ ...req.body, event_id, name });
-    await event.save();
-    res.status(201).json({ message: `Event ${event._id} was created sucessfully.`, event });
+    
+    // Prepare event data for Salesforce
+    const eventData = {
+      ...req.body,
+      Created_Date__c: new Date().toISOString(),
+      Event_Status__c: req.body.Event_Status__c || 'Published'
+    };
+    
+    // Create event in Salesforce
+    const result = await Event.create(eventData);
+    
+    res.status(201).json({ 
+      message: `Event ${result.id} was created successfully.`, 
+      event: { id: result.id, ...eventData } 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -107,10 +114,28 @@ router.put('/:id', auth, async (req, res) => {
     if (updater.Volunteer_Type__c !== 'Administrator') {
       return res.status(403).json({ message: `Only admins can update events. Updated_By__c ${Updated_By__c} is not an admin.` });
     }
-    const e = await Event.findByIdAndUpdate(normalizedId, req.body, { new: true });
-    if (!e) return res.status(404).json({ message: `Event id ${normalizedId} not found` });
-    res.json({ message: `Event ${e._id} was updated.`, event: e });
+    
+    // Check if event exists first
+    const existing = await Event.findById(normalizedId);
+    if (!existing) return res.status(404).json({ message: `Event id ${normalizedId} not found` });
+    
+    // Filter out MongoDB-specific and system fields, plus validation-only fields
+    const updateData = { ...req.body };
+    delete updateData.updatedAt;
+    delete updateData.createdAt;
+    delete updateData._id;
+    delete updateData.__v;
+    delete updateData.Id;
+    delete updateData.id;
+    delete updateData.attributes;
+    delete updateData.Updated_By__c;  // This is for validation only, not a real Salesforce field
+    
+    console.log('DEBUG updateEvent:', { id: normalizedId, updateData });
+    
+    const e = await Event.findByIdAndUpdate(normalizedId, updateData);
+    res.json({ message: `Event ${normalizedId} was updated.`, event: e });
   } catch (err) {
+    console.error('Error updating event:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -143,7 +168,10 @@ router.delete('/:id', auth, async (req, res) => {
     }
     const e = await Event.findByIdAndDelete(normalizedId);
     if (!e) return res.status(404).json({ message: `Event id ${normalizedId} not found` });
-    res.json({ message: `Event ${e._id} was deleted.` });
+    
+    // findByIdAndDelete returns { id } (lowercase)
+    const deletedId = e.id || e.Id || normalizedId;
+    res.json({ message: `Event ${deletedId} was deleted.` });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

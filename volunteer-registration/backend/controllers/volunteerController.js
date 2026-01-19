@@ -1,7 +1,13 @@
 const Volunteer = require('../models/Volunteer');
 const History = require('../models/History');
 const bcrypt = require('bcrypt');
-const mongoose = require('mongoose');
+
+// Helper function to validate Salesforce ID format (15 or 18 characters, alphanumeric)
+function isValidSalesforceId(id) {
+  if (!id || typeof id !== 'string') return false;
+  // Salesforce IDs are 15 or 18 characters, alphanumeric (case-sensitive)
+  return /^[a-zA-Z0-9]{15}$|^[a-zA-Z0-9]{18}$/.test(id);
+}
 
 const requiredFields = [
   'First_Name__c',
@@ -19,14 +25,15 @@ const requiredFields = [
   'Status__c'
 ];
 
-// Log activity to History collection
+// Log activity to History collection (Salesforce-compatible)
 async function logActivity({ schema, activity_type, user_id, activity_response }) {
   try {
     await History.create({
-      schema,
-      activity_type,
-      user_id,
-      activity_response
+      Schema__c: schema,
+      Activity_Type__c: activity_type,
+      User__c: user_id,
+      Activity_Response__c: activity_response,
+      Activity_Timestamp__c: new Date().toISOString()
     });
   } catch (err) {
     console.error('Failed to log activity:', err);
@@ -56,45 +63,41 @@ const createVolunteer = async (req, res) => {
       });
     }
 
-    // Generate a unique name (auto-number simulation)
-    const count = await Volunteer.countDocuments();
-    const name = `VOL-${(count + 1).toString().padStart(4, '0')}`;
-
     // Remove password from req.body before spreading
     const { password, ...rest } = req.body;
 
-    // Create the user/volunteer instance
-    const volunteer = new Volunteer({
+    // Prepare volunteer data
+    const volunteerData = {
       ...rest,
-      name,
-      Volunteer_Type__c: rest.Volunteer_Type__c || 'Individual', // default to Individual if not provided
+      Volunteer_Type__c: rest.Volunteer_Type__c || 'Individual',
       Status__c: rest.Status__c || 'Active'
-    });
+    };
 
-    // Set password using the virtual setter
+    // Hash password if provided
     if (password) {
-      // Hash password and set Pass_Hash directly (if you want to do it here)
       const salt = await bcrypt.genSalt(10);
-      volunteer.Pass_Hash = await bcrypt.hash(password, salt);
+      volunteerData.Pass_Hash__c = await bcrypt.hash(password, salt);
     }
 
-    // Debug: log before save
-    console.log('DEBUG volunteer before save:', volunteer);
+    // Debug: log before create
+    console.log('DEBUG volunteer before create:', volunteerData);
 
-    await volunteer.save();
+    // Create volunteer in Salesforce
+    const result = await Volunteer.create(volunteerData);
+    
+    // Debug: log after create
+    console.log('DEBUG volunteer after create:', result);
+
     await logActivity({
       schema: 'Volunteer',
       activity_type: 'create',
-      user_id: volunteer._id,
-      activity_response: `User ${volunteer.First_Name__c} ${volunteer.Last_Name__c} was created`
+      user_id: result.id,
+      activity_response: `User ${volunteerData.First_Name__c} ${volunteerData.Last_Name__c} was created`
     });
 
-    // Debug: log after save
-    console.log('DEBUG volunteer after save:', volunteer);
-
     res.status(201).json({
-      message: `User ${volunteer.First_Name__c} ${volunteer.Last_Name__c} was created`,
-      id: volunteer._id
+      message: `User ${volunteerData.First_Name__c} ${volunteerData.Last_Name__c} was created`,
+      id: result.id
     });
   } catch (err) {
     await logActivity({
@@ -132,8 +135,8 @@ const getVolunteerByEmail = async (req, res) => {
     await logActivity({
       schema: 'Volunteer',
       activity_type: 'get',
-      user_id: req.user?.id || volunteer._id,
-      activity_response: `Volunteer ${volunteer._id} retrieved`
+      user_id: req.user?.id || volunteer.Id,
+      activity_response: `Volunteer ${volunteer.Id} retrieved`
     });
     res.json(volunteer);
   } catch (err) {
@@ -164,7 +167,7 @@ const updateVolunteer = async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'volunteer id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: 'Invalid volunteer id format' });
     }
     const updateFields = { ...req.body };
@@ -173,13 +176,19 @@ const updateVolunteer = async (req, res) => {
   console.log('DEBUG updateVolunteer:', { id: normalizedId, updateFields });
 
     // List of fields that should NOT be updated directly
+    // Includes MongoDB-specific fields and Salesforce protected fields
     const protectedFields = [
       'Pass_Hash',
+      'Pass_Hash__c',
       'createdAt',
+      'updatedAt',
       'Registration_Date__c',
       'Offender_Policy_Confirmed__c',
       '_id',
-      '__v'
+      '__v',
+      'Id',
+      'id',
+      'attributes'
     ];
 
     // Find which protected fields are being attempted to update (case-sensitive)
@@ -214,10 +223,10 @@ const updateVolunteer = async (req, res) => {
     await logActivity({
       schema: 'Volunteer',
       activity_type: 'update',
-      user_id: req.user?.id || volunteer._id,
-      activity_response: `Account for user ${volunteer._id} was updated.`
+      user_id: req.user?.id || volunteer.Id,
+      activity_response: `Account for user ${volunteer.Id} was updated.`
     });
-    res.json({ message: `Account for user ${volunteer._id} was updated.` });
+    res.json({ message: `Account for user ${volunteer.Id} was updated.` });
   } catch (err) {
     await logActivity({
       schema: 'Volunteer',
@@ -245,7 +254,7 @@ const deleteVolunteer = async (req, res) => {
     if (normalizedId === '' || normalizedId === ':id' || ['undefined', 'null'].includes(normalizedId.toLowerCase())) {
       return res.status(400).json({ message: 'volunteer id should not be empty' });
     }
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: 'Invalid volunteer id format' });
     }
 
@@ -259,13 +268,17 @@ const deleteVolunteer = async (req, res) => {
       });
       return res.status(404).json({ message: 'Volunteer not found' });
     }
+    
+    // findByIdAndDelete returns { id } (lowercase)
+    const deletedId = volunteer.id || volunteer.Id || normalizedId;
+    
     await logActivity({
       schema: 'Volunteer',
       activity_type: 'delete',
-      user_id: req.user?.id || volunteer._id,
-      activity_response: `Account for user ${volunteer._id} was deleted.`
+      user_id: req.user?.id || deletedId,
+      activity_response: `Account for user ${deletedId} was deleted.`
     });
-    res.json({ message: `Account for user ${volunteer._id} was deleted.` });
+    res.json({ message: `Account for user ${deletedId} was deleted.` });
   } catch (err) {
     await logActivity({
       schema: 'Volunteer',
@@ -311,8 +324,8 @@ const getVolunteerById = async (req, res) => {
       return res.status(400).json({ message: 'volunteer id should not be empty' });
     }
 
-    // Validate ObjectId format to avoid CastError returning 500
-    if (!mongoose.Types.ObjectId.isValid(normalizedId)) {
+    // Validate Salesforce ID format
+    if (!isValidSalesforceId(normalizedId)) {
       return res.status(400).json({ message: 'Invalid volunteer id format' });
     }
 
