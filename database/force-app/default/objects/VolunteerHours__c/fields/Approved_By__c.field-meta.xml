@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Approved_By__c</fullName>
+    <deleteConstraint>Restrict</deleteConstraint>
+    <externalId>false</externalId>
+    <label>Approved By</label>
+    <referenceTo>Volunteer__c</referenceTo>
+    <relationshipLabel>Approved By (VolunteerHours)</relationshipLabel>
+    <relationshipName>VolunteerHoursApprovedBy</relationshipName>
+    <required>false</required>
+    <securityClassification>Public</securityClassification>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>
