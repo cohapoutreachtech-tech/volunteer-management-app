@@ -4,8 +4,6 @@ name: Salesforce DX Deployment
 on:
   push:
     branches:
-      - main
-      - master
       - dev
     paths:
       - 'volunteer-registration/force-app/**'
@@ -19,8 +17,6 @@ on:
         type: choice
         options:
           - dev
-          - staging
-          - production
 
 jobs:
   validate-and-deploy:
@@ -37,7 +33,7 @@ jobs:
       - name: Install Salesforce CLI
         run: |
           wget https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz
-          mkdir ~/cli/sf
+          mkdir -p ~/cli/sf
           tar xJf sf-linux-x64.tar.xz -C ~/cli/sf --strip-components 1
           echo "$HOME/cli/sf/bin" >> $GITHUB_PATH
 
@@ -69,7 +65,7 @@ jobs:
         run: |
           echo "Assigning permission sets..."
           # Add permission set assignment commands here if needed
-          # sf org assign permset --name VolunteerAPIAccess
+          sf org assign permset --name VolunteerAPIAccess
         working-directory: ./volunteer-registration
         continue-on-error: true
 
