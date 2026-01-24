@@ -1,0 +1,60 @@
+name: Salesforce PR Validation
+
+# Run on pull requests
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+      - dev
+    paths:
+      - 'volunteer-registration/force-app/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Install Salesforce CLI
+      - name: Install Salesforce CLI
+        run: |
+          wget https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz
+          mkdir ~/cli/sf
+          tar xJf sf-linux-x64.tar.xz -C ~/cli/sf --strip-components 1
+          echo "$HOME/cli/sf/bin" >> $GITHUB_PATH
+
+      # Verify SF CLI installation
+      - name: Verify Salesforce CLI
+        run: sf --version
+
+      # Authenticate to Salesforce
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" > ./SFDX_AUTH_URL.txt
+          sf org login sfdx-url --sfdx-url-file ./SFDX_AUTH_URL.txt --alias target-org --set-default
+        working-directory: ./volunteer-registration
+
+      # Validate deployment (check-only, no actual deployment)
+      - name: Validate Deployment
+        run: |
+          sf project deploy start --source-dir force-app/default --dry-run --wait 20 --verbose
+        working-directory: ./volunteer-registration
+
+      # Run Apex tests
+      - name: Run Apex Tests
+        run: |
+          sf apex run test --wait 10 --result-format human --code-coverage --test-level RunLocalTests
+        working-directory: ./volunteer-registration
+
+      # Comment on PR with results
+      - name: PR Validation Summary
+        if: always()
+        run: |
+          echo "✅ Validation completed!"
+          echo "Check the logs above for test results and code coverage."

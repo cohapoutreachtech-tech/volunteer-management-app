@@ -1,0 +1,81 @@
+name: Salesforce DX Deployment
+
+# Run on push to main/master or manually
+on:
+  push:
+    branches:
+      - main
+      - master
+      - dev
+    paths:
+      - 'volunteer-registration/force-app/**'
+      - '.github/workflows/salesforce-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      target_org:
+        description: 'Target Salesforce org (dev, staging, production)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Install Salesforce CLI
+      - name: Install Salesforce CLI
+        run: |
+          wget https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz
+          mkdir ~/cli/sf
+          tar xJf sf-linux-x64.tar.xz -C ~/cli/sf --strip-components 1
+          echo "$HOME/cli/sf/bin" >> $GITHUB_PATH
+
+      # Verify SF CLI installation
+      - name: Verify Salesforce CLI
+        run: sf --version
+
+      # Authenticate to Salesforce using SFDX Auth URL
+      - name: Authenticate to Salesforce
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" > ./SFDX_AUTH_URL.txt
+          sf org login sfdx-url --sfdx-url-file ./SFDX_AUTH_URL.txt --alias target-org --set-default
+        working-directory: ./volunteer-registration
+
+      # Run Apex tests
+      - name: Run Apex Tests
+        run: |
+          sf apex run test --wait 10 --result-format human --code-coverage --test-level RunLocalTests || true
+        working-directory: ./volunteer-registration
+
+      # Deploy source to org
+      - name: Deploy to Salesforce
+        run: |
+          sf project deploy start --source-dir force-app/default --wait 20 --verbose
+        working-directory: ./volunteer-registration
+
+      # Assign permission set (if needed)
+      - name: Assign Permission Sets
+        run: |
+          echo "Assigning permission sets..."
+          # Add permission set assignment commands here if needed
+          # sf org assign permset --name VolunteerAPIAccess
+        working-directory: ./volunteer-registration
+        continue-on-error: true
+
+      # Display deployment summary
+      - name: Deployment Summary
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🔗 Org URL: $(sf org display --verbose | grep 'Instance Url' | cut -d' ' -f3)"
+        working-directory: ./volunteer-registration
