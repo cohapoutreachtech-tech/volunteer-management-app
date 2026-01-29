@@ -78,7 +78,7 @@ jobs:
       # Create Service Account for 2FA-free API Access (after permission set is created)
       - name: Create Service Account
         run: |
-          echo "Creating service account for API access..."
+          echo "Creating or updating service account for API access..."
           
           # Create a temporary Apex script to create the service account
           cat > /tmp/create_service_account.apex << 'EOF'
@@ -120,12 +120,30 @@ jobs:
               insert new PermissionSetAssignment(AssigneeId = apiUser.Id, PermissionSetId = ps.Id);
               System.debug('VolunteerAPIAccess permission set assigned to service account');
           } else {
-              System.debug('Service account already exists: ' + existingUsers[0].Id);
+              // Service account already exists - update password
+              User existingUser = existingUsers[0];
+              System.debug('Service account already exists: ' + existingUser.Id);
+              System.debug('Updating password for service account...');
+              
+              // Update password to current GitHub secret value
+              System.setPassword(existingUser.Id, password);
+              System.debug('Password updated for service account');
+              
+              // Ensure permission set is still assigned
+              PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = 'VolunteerAPIAccess' LIMIT 1];
+              List<PermissionSetAssignment> assignments = [SELECT Id FROM PermissionSetAssignment WHERE AssigneeId = :existingUser.Id AND PermissionSetId = :ps.Id LIMIT 1];
+              
+              if (assignments.isEmpty()) {
+                  insert new PermissionSetAssignment(AssigneeId = existingUser.Id, PermissionSetId = ps.Id);
+                  System.debug('VolunteerAPIAccess permission set assigned to existing service account');
+              } else {
+                  System.debug('VolunteerAPIAccess permission set already assigned');
+              }
           }
           EOF
           
           # Run the Apex script
-          sf apex run --file /tmp/create_service_account.apex || echo "Service account creation completed (may already exist)"
+          sf apex run --file /tmp/create_service_account.apex || echo "Service account setup completed"
         working-directory: ./volunteer-registration
         continue-on-error: true
 
