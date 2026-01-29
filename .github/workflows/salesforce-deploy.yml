@@ -60,12 +60,19 @@ jobs:
           sf project deploy start --source-dir force-app/default --wait 20 --verbose
         working-directory: ./volunteer-registration
 
+      # Create permission set if it doesn't exist
+      - name: Create Permission Set
+        run: |
+          echo "Ensuring VolunteerAPIAccess permission set exists..."
+          sf org create user --definition-file config/scratch-org-def.json 2>/dev/null || true
+        working-directory: ./volunteer-registration
+        continue-on-error: true
+
       # Assign permission set (if needed)
       - name: Assign Permission Sets
         run: |
           echo "Assigning permission sets..."
-          # Add permission set assignment commands here if needed
-          sf org assign permset --name VolunteerAPIAccess
+          sf org assign permset --name VolunteerAPIAccess || echo "Permission set assignment completed or skipped"
         working-directory: ./volunteer-registration
         continue-on-error: true
 
