@@ -84,6 +84,7 @@ jobs:
           cat > /tmp/create_service_account.apex << 'EOF'
           String username = '${{ secrets.SF_USERNAME }}';
           String email = '${{ secrets.SF_EMAIL }}';
+          String password = '${{ secrets.SF_PASSWORD }}';
           String firstname = 'API';
           String lastname = 'Service Account';
           
@@ -109,6 +110,10 @@ jobs:
               );
               insert apiUser;
               System.debug('Service account created: ' + apiUser.Id);
+              
+              // Set password explicitly (no email reset needed)
+              System.setPassword(apiUser.Id, password);
+              System.debug('Password set for service account');
               
               // Grant only API access permission set (principle of least privilege)
               PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = 'VolunteerAPIAccess' LIMIT 1];
