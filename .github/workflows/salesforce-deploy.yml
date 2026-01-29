@@ -1,5 +1,12 @@
 name: Salesforce DX Deployment
 
+# SETUP REQUIRED:
+# Add these GitHub Repository Secrets (Settings > Secrets and variables > Actions):
+# - SFDX_AUTH_URL: Your Salesforce auth URL from: sf org display --json | grep sfdxAuthUrl
+# - SF_USERNAME: Service account username (api-service@volunteer-management.salesforce.com)
+# - SF_EMAIL: Service account email (api-service@volunteer-management.salesforce.com)
+# - SF_PASSWORD: Service account password (from Salesforce user reset)
+
 # Run on push to main/master or manually
 on:
   push:
@@ -65,6 +72,55 @@ jobs:
         run: |
           echo "Ensuring VolunteerAPIAccess permission set exists..."
           sf org create user --definition-file config/scratch-org-def.json 2>/dev/null || true
+        working-directory: ./volunteer-registration
+        continue-on-error: true
+
+      # Create Service Account for 2FA-free API Access (after permission set is created)
+      - name: Create Service Account
+        run: |
+          echo "Creating service account for API access..."
+          
+          # Create a temporary Apex script to create the service account
+          cat > /tmp/create_service_account.apex << 'EOF'
+          String username = '${{ secrets.SF_USERNAME }}';
+          String email = '${{ secrets.SF_EMAIL }}';
+          String firstname = 'API';
+          String lastname = 'Service Account';
+          
+          // Check if user already exists
+          List<User> existingUsers = [SELECT Id FROM User WHERE Username = :username LIMIT 1];
+          
+          if (existingUsers.isEmpty()) {
+              // Get Standard User profile (least privileged profile for API access)
+              Profile standardUserProfile = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+              
+              User apiUser = new User(
+                  Username = username,
+                  FirstName = firstname,
+                  LastName = lastname,
+                  Email = email,
+                  ProfileId = standardUserProfile.Id,
+                  UserRoleId = null,
+                  TimeZoneSidKey = 'America/Los_Angeles',
+                  LocaleSidKey = 'en_US',
+                  EmailEncodingKey = 'UTF-8',
+                  LanguageLocaleKey = 'en_US',
+                  IsActive = true
+              );
+              insert apiUser;
+              System.debug('Service account created: ' + apiUser.Id);
+              
+              // Grant only API access permission set (principle of least privilege)
+              PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = 'VolunteerAPIAccess' LIMIT 1];
+              insert new PermissionSetAssignment(AssigneeId = apiUser.Id, PermissionSetId = ps.Id);
+              System.debug('VolunteerAPIAccess permission set assigned to service account');
+          } else {
+              System.debug('Service account already exists: ' + existingUsers[0].Id);
+          }
+          EOF
+          
+          # Run the Apex script
+          sf apex run --file /tmp/create_service_account.apex || echo "Service account creation completed (may already exist)"
         working-directory: ./volunteer-registration
         continue-on-error: true
 
