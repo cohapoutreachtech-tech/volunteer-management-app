@@ -9,7 +9,13 @@
     <allowStandardSearch>false</allowStandardSearch>
     <authorizationRequiredPage>Unauthorized</authorizationRequiredPage>
     <bandwidthExceededPage>BandwidthExceeded</bandwidthExceededPage>
+    <browserXssProtection>true</browserXssProtection>
     <changePasswordPage>ChangePassword</changePasswordPage>
+    <clickjackProtectionLevel>SameOriginOnly</clickjackProtectionLevel>
+    <contentSniffingProtection>true</contentSniffingProtection>
+    <indexPage>Home</indexPage>
+    <masterLabel>Volunteer API</masterLabel>
+    <referrerPolicyOriginWhenCrossOrigin>true</referrerPolicyOriginWhenCrossOrigin>
     <siteAdmin>starwarsgeek14mz.01f8d826fbec@agentforce.com</siteAdmin>
     <siteType>Visualforce</siteType>
     <subdomain>volunteerapi</subdomain>
