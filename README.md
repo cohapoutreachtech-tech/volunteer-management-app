@@ -1,34 +1,54 @@
 # Volunteer Management API
 
-This repository contains a simple REST API built with Node.js, Express, and Salesforce (sfdx) for managing Volunteers, Events, and Registrations (shift sign-ups).
+A Salesforce-native REST API for managing Volunteers, Events, and Registrations. Built entirely on Salesforce Apex with **tokenless public API access** via Salesforce Sites.
 
-Features
-- User registration and login (username/password) with JWT-based authentication
-- CRUD for Events and Volunteers
-- Create / Cancel Registrations with checks: event active, shift exists, capacity
+## Features
+- ✅ **Tokenless Authentication** - No token expiration issues via Salesforce Sites
+- ✅ **Public API Access** - External applications can authenticate without Salesforce credentials
+- ✅ **SHA-256 Password Hashing** - Apex-compatible secure password storage
+- ✅ **Comprehensive Validations** - Duplicate prevention, format validation, data integrity checks
+- ✅ **Volunteer Management** - CRUD operations with duplicate email prevention
+- ✅ **Event Management** - Event creation, tracking, and capacity management
+- ✅ **Registration System** - Volunteer event sign-ups with duplicate prevention
+- ✅ **Hours Tracking** - Clock in/out with automatic hour calculation
+- ✅ **Activity History** - Comprehensive audit trail for all operations
 
-Getting started
+## Architecture
 
-1. Copy environment example and set values:
+**No Node.js Backend Required** - All APIs run directly on Salesforce Apex:
+- **Authentication**: SHA-256 hashed passwords stored in `Volunteer__c` object
+- **Public Access**: Salesforce Sites guest user provides tokenless API access
+- **Database**: Native Salesforce custom objects (no external database)
+- **Deployment**: Salesforce CLI with GitHub Actions CI/CD
 
-```
+## Getting Started
+
+### Prerequisites
+- Salesforce Developer Edition account (free forever)
+- Salesforce CLI installed
+- Node.js (for test scripts only)
+
+### 1. Environment Setup
+
+Copy the environment template:
+```bash
 cp .env.example .env
-# then edit .env to set SF secrets and JWT_SECRET
 ```
 
-2. Install dependencies:
+Edit `.env` with your Salesforce credentials:
+```env
+# Salesforce Site URL (No authentication token needed!)
+SF_SITE_URL=https://your-org.my.site.com/volunteerapivforcesite
 
+# Salesforce Org (for admin operations via CLI)
+SF_INSTANCE_URL=https://your-org.salesforce.com
+SF_USERNAME=your-email@example.com
+SF_PASSWORD=yourPasswordAndSecurityToken
 ```
-npm run install-all
-```
 
-3. Setup Salesforce
+### 2. Create Salesforce Developer Edition Account
 
-   This application connects to a Salesforce Org to manage data.
-
-   **Create a Free Salesforce Developer Edition Account**
-   
-   If you don't have a Salesforce account yet, follow these steps:
+If you don't have a Salesforce account:
    
    1. Go to [https://developer.salesforce.com/signup](https://developer.salesforce.com/signup)
    2. Fill out the registration form:
@@ -52,211 +72,350 @@ npm run install-all
    - You can create multiple Developer Edition accounts if needed
    - Your username will be your email address
 
-   **Salesforce CLI (Recommended)**
-   This is the easiest method and bypasses "SOAP API Login" restrictions.
-   1. Install [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli).
-   2. Authorize your Org:
-      ```bash
-      sf org login web --alias dev-org --set-default
-      ```
-      This will open a browser window - log in with your Developer Edition credentials.
-   3. Verify the application can connect:
-      ```bash
-      node scripts/verify-app-auth.js
-      ```
+   
+1. Go to [https://developer.salesforce.com/signup](https://developer.salesforce.com/signup)
+2. Fill out the registration form (First/Last Name, Email, Role: Developer, Company)
+3. Check your email for verification link
+4. Set your password
+5. **Save your credentials** - you'll need them for CLI authentication
 
-4. Enable Salesforce Digital Experiences (for Public API Access)
+**Important:** Developer Edition accounts are free forever (just login once every 6 months).
 
-   To allow the login endpoint to work without authentication, you need to create a Salesforce Site with guest user access:
+### 3. Authenticate with Salesforce CLI
 
-   **Step 1: Enable Digital Experiences**
-   1. In Salesforce Setup, search for **"Digital Experiences"** in Quick Find
-   2. Click **Digital Experiences → Settings**
-   3. Check the box for **"Enable Digital Experiences"**
-   4. Accept the default domain name (e.g., `orgfarm-{yourid}-dev-ed.develop.my.site.com`)
-   5. Click **Save**
+Install [Salesforce CLI](https://developer.salesforce.com/tools/salesforcecli), then authorize your org:
 
-   **Step 2: Create a New Site**
-   1. Go to **Digital Experiences → All Sites**
-   2. Click **New** button
-   3. Select template: **Build Your Own (LWR)**
-   4. Enter Site Name: **Volunteer API**
-   5. Enter URL: **volunteerapi**
-   6. Click **Create** (this may take a few minutes)
-
-   **Step 3: Enable Guest User API Access**
-   
-   **IMPORTANT:** This step is crucial for allowing your mobile application (external to Salesforce) to call the login endpoint without authentication.
-   
-   1. Once the site is created, click the dropdown next to your site and select **Administration**
-   2. In the left sidebar, click **Preferences**
-   3. You'll see a "General" section with a checkbox: **"Allow guest users to access public APIs"**
-   4. **Check this box** and click **Save**
-   
-   **Step 4: Grant Guest User Profile Access to Apex Classes**
-   
-   **CRITICAL:** Without this step, the site will show a login page instead of executing your API code.
-   
-   Now you need to give the guest user permission to execute the authentication Apex classes:
-   
-   1. In Salesforce Setup (not the site admin), search for **"Profiles"** in Quick Find
-      
-      **Quick Command (from volunteer-registration folder):**
-      ```powershell
-      sf org open --path /lightning/setup/EnhancedProfiles/home
-      ```
-      
-      **Or manually:** In Salesforce Setup, use the Quick Find box on the left and type "Profiles"
-   
-   2. In the list of profiles, look for a profile named **"Volunteer API Profile"** or **"Volunteer API Site Guest User"**
-      - **Note:** Do NOT click on "Volunteer API" workspace/site links - you need the guest user **profile** in the profiles list
-      - Look in the table/list of profile names (System Administrator, Standard User, etc.)
-   3. Click on that **profile name** (this opens profile settings, NOT the site)
-   4. Scroll down to **Enabled Apex Class Access** section
-   5. Click **Edit**
-   6. Move these classes from "Available Apex Classes" to "Enabled Apex Classes":
-      - `AuthAPI`
-      - `ValidationUtils`
-      - `PasswordUtils`
-      - `JWTUtils`
-      - `PublicLoginController` (NEW - required for Visualforce API)
-   7. Click **Save**
-   8. Scroll down to **Enabled Visualforce Page Access** section
-   9. Click **Edit**
-   10. Move `PublicLoginAPI` from "Available" to "Enabled"
-   11. Click **Save**
-   
-   **Important:** The login page you're seeing when testing the API is NOT for your application users - it's Salesforce blocking API access because the guest user profile doesn't have permission to execute the Apex classes. Once you enable these classes, the API will return JSON instead of a login page.
-
-   **Step 5: Activate the Site**
-   
-   **CRITICAL:** The site must be activated for public API access to work!
-   
-   1. Go back to **Digital Experiences → All Sites**
-   2. Click **Activate** next to your "Volunteer API" site
-   3. Confirm activation
-   4. Copy the site URL from the list (e.g., `https://orgfarm-{yourid}-dev-ed.develop.my.site.com/volunteerapi`)
-   
-   **Note:** The site status should show "Active" after this step.
-
-   **Your Public API Endpoints for External Mobile Apps:**
-   
-   Once configured, your **mobile application** (or any external client) can authenticate without needing a Salesforce session:
-   
-   **1. Login (No Auth Required):**
-   ```
-   POST https://orgfarm-{yourid}-dev-ed.develop.my.site.com/volunteerapi/services/apexrest/api/auth/login
-   
-   Headers:
-   Content-Type: application/json
-   
-   Body (JSON):
-   {
-     "email": "someemail@gmail.com",
-     "password": "admin123"
-   }
-   
-   Response:
-   {
-     "token": "eyJhbGci...",
-     "volunteer": {
-       "id": "a2Tfj000001us1xEAA",
-       "Email__c": "someemail@gmail.com",
-       "First_Name__c": "Administrator",
-       "Last_Name__c": "COHAP",
-       "Status__c": "Active"
-     }
-   }
-   ```
-   
-   This endpoint works **WITHOUT any Salesforce authentication token**! Perfect for mobile apps.
-   
-   **2. Protected Endpoints (Require JWT from Login):**
-   
-   After login, use the JWT token for all other API calls:
-   ```
-   GET https://orgfarm-{yourid}-dev-ed.develop.my.salesforce.com/services/apexrest/api/volunteers
-   
-   Headers:
-   Authorization: Bearer <JWT_TOKEN_FROM_LOGIN>
-   Content-Type: application/json
-   ```
-   
-   Available endpoints:
-   - `/api/volunteers` - Volunteer CRUD operations
-   - `/api/events` - Event management
-   - `/api/registrations` - Event registrations
-   - `/api/volunteerhours` - Hours tracking and approval
-   
-   **Why This Architecture?**
-   - ✅ Mobile app doesn't need Salesforce credentials
-   - ✅ Login endpoint is publicly accessible via Site guest user
-   - ✅ JWT tokens secure all other endpoints
-   - ✅ Everything hosted in Salesforce (no external servers needed)
-   - ✅ Automatic token expiration (12 hours) for security
-   
-   **🚨 Troubleshooting: If you see a Salesforce login page instead of JSON response:**
-   
-   This means the guest user profile doesn't have permission to execute the Apex classes. The login page is NOT for your app users - it's Salesforce blocking API access.
-   
-   **Fix:**
-   1. Run: `sf org open --path /lightning/setup/EnhancedProfiles/home`
-   2. Find the "Volunteer API Profile" (or similar guest user profile)
-   3. Enable the 4 required Apex classes: `AuthAPI`, `JWTUtils`, `PasswordUtils`, `ValidationUtils`
-   4. Test again - you should get JSON, not a login page
-   
-   **Can't find the profile?** Run this query to find it:
-   ```powershell
-   sf data query --query "SELECT Id, Name FROM Profile WHERE Name LIKE '%Volunteer%' OR Name LIKE '%Site%' OR Name LIKE '%Guest%'" --json
-   ```
-   
-   **Note:** Your `.env` file's `SF_USERNAME` and `SF_PASSWORD` are for Salesforce CLI authentication only, NOT for the site login page. The mobile app uses volunteer emails/passwords stored in the `Volunteer__c` object.
-
-5. Init database with dummy data:
-
-```
-npm run init-db
+```bash
+sf org login web --alias dev-org --set-default
 ```
 
-   **⚠️ Known Issue:** Due to limitations with jsforce metadata API, some fields may not be created properly despite showing success. If seeding fails with "No such column" errors:
-   
-   1. Check if objects/fields exist in Salesforce Setup → Object Manager
-   2. If fields are missing, you may need to create them manually via the Salesforce UI
-   3. Then run the seed script: `node database/init/runSeed.js`
-   
-   Alternatively, wait 5-10 minutes for metadata propagation and retry the seed.
+This opens a browser - log in with your Developer Edition credentials.
 
-   **Verify Objects Were Created:**
-   After running `init-db`, check your Salesforce Org to confirm the custom objects were created:
-   
-   1. Log into your Salesforce Org
-   2. Click the **⚙️ gear icon** (top right) → **Setup**
-   3. In the Quick Find box, type **"Object Manager"**
-   4. Look for these custom objects:
-      - `Volunteer` (API: `Volunteer__c`)
-      - `Event` (API: `Event__c`)
-      - `Registration` (API: `Registration__c`)
-      - `Volunteer Hours` (API: `VolunteerHours__c`)
-      - `History` (API: `History__c`)
-   
-   *Alternatively, use the **App Launcher** (9 dots icon) and search for "Volunteers" or "Events" to view the data.*
-
-API overview
-
-```
-npm run start-api
+**Verify authentication:**
+```bash
+cd volunteer-registration
+node test/verify-app-auth.js
 ```
 
-[Join Postman to see API Endpoint Documentation](https://app.getpostman.com/join-team?invite_code=f21d75ffcf9cbd4031b45de86f528aa3260a856a28ed8044f48f02670bb23174&target_code=2d6392d64d8abbbf1fd3d8a08b163a40)
+### 4. Deploy Apex Classes and Custom Objects
 
-[Mock Server Endpoint](https://f1fc3834-5ac4-4daa-87bf-ae43602eb472.mock.pstmn.io)
+Deploy all metadata to your Salesforce org:
 
-Get session JWT Token
-{{baseUrl}}/auth/login
+```bash
+cd volunteer-registration
+sf project deploy start --source-dir force-app/default --wait 20
+```
 
+**Verify deployment:**
+```bash
+sf org open --path /lightning/setup/ObjectManager/home
+```
 
-Sex Ofender Registry Background Check
-curl --request GET 
-	--url 'https://sex-offenders.p.rapidapi.com/sexoffender?firstName=Joseph&lastName=Nigro&zipcode=10465&mode=extensive' 
-	--header 'x-rapidapi-host: sex-offenders.p.rapidapi.com' 
-	--header 'x-rapidapi-key: <key>'
+Look for: `Volunteer__c`, `Event__c`, `Registration__c`, `VolunteerHours__c`, `History__c`
+
+### 5. Configure Salesforce Site (Public API Access)
+
+**The working site already exists in your org!** Just verify it's active:
+
+1. Check site status:
+   ```bash
+   sf org open --path /lightning/setup/SetupNetworks/home
+   ```
+
+2. Look for **"Volunteer API"** site with URL path: `volunteerapivforcesite`
+
+3. If status is "Inactive", click **Activate**
+
+4. Copy the site URL:
+   ```
+   https://[your-org].develop.my.site.com/volunteerapivforcesite
+   ```
+
+5. Update your `.env`:
+   ```env
+   SF_SITE_URL=https://[your-org].develop.my.site.com/volunteerapivforcesite
+   ```
+
+**For detailed site setup** (if you need to create from scratch), see [SALESFORCE_SITES_SETUP.md](SALESFORCE_SITES_SETUP.md).
+
+### 6. Seed Test Data
+
+Initialize database with test data:
+
+```bash
+cd database
+npm install
+npm run seed
+```
+
+**Test credentials created:**
+- Email: `admin@cohap.org`
+- Password: `admin123`
+
+### 7. Test the API
+
+```bash
+cd volunteer-registration/test
+node test-site-api.js
+```
+
+**Expected response:**
+```json
+{
+  "message": "Login successful",
+  "volunteer": {
+    "Id": "a2T...",
+    "Email__c": "admin@cohap.org",
+    "First_Name__c": "Administrator"
+  },
+  "token": "eyJ0eXAi..."
+}
+```
+
+✅ **Success!** Your API is working without authentication tokens.
+
+---
+
+## API Documentation
+
+### Base URL
+```
+https://[your-org].develop.my.site.com/volunteerapivforcesite/services/apexrest
+```
+
+### Authentication Endpoint (No Token Required)
+
+**POST** `/api/auth/login`
+
+**Request:**
+```json
+{
+  "email": "admin@cohap.org",
+  "password": "admin123"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Login successful",
+  "volunteer": {
+    "Id": "a2Tfj000001us1xEAA",
+    "Email__c": "admin@cohap.org",
+    "First_Name__c": "Administrator",
+    "Last_Name__c": "COHAP"
+  },
+  "token": "eyJhbGci..."
+}
+```
+
+### Protected Endpoints (Require JWT Token)
+
+After login, include the JWT token in all subsequent requests:
+
+```bash
+Authorization: Bearer <token-from-login>
+```
+
+**Available endpoints:**
+- **Volunteers**: `/api/volunteers/*` - CRUD operations
+- **Events**: `/api/events/*` - Event management
+- **Registrations**: `/api/registrations/*` - Event sign-ups
+- **Hours**: `/api/volunteerhours/*` - Hours tracking
+
+See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete endpoint reference.
+
+---
+
+## Data Validations
+
+All Apex APIs include comprehensive validations:
+
+### ✅ Duplicate Prevention
+- **Email Uniqueness**: No duplicate volunteer emails (409 Conflict)
+- **Registration Uniqueness**: Volunteer can only register once per event (409 Conflict)
+
+### ✅ Format Validation
+- **Dates**: YYYY-MM-DD format required
+- **Email**: Valid email format
+- **Phone**: Valid phone number format
+- **URLs**: Valid URL format for image fields
+
+### ✅ Data Integrity
+- **Required Fields**: All mandatory fields validated
+- **Numeric Values**: Type checking for numbers
+- **Record Existence**: 404 if related records don't exist
+- **Foreign Key Validation**: Verify volunteer/event exists before creating registration/hours
+
+See [APEX_VALIDATIONS.md](APEX_VALIDATIONS.md) for complete validation reference.
+
+---
+
+## Password Security
+
+**SHA-256 Hashing**: Passwords are hashed using SHA-256 (Apex-compatible):
+
+```apex
+// Apex (PasswordUtils.cls)
+String hash = EncodingUtil.convertToHex(
+  Crypto.generateDigest('SHA-256', Blob.valueOf(password + salt))
+);
+```
+
+```javascript
+// Node.js (seedData.js)
+const hash = crypto.createHash('sha256')
+  .update(password + salt)
+  .digest('hex');
+```
+
+**Why SHA-256?** Salesforce Apex doesn't support bcrypt natively. SHA-256 provides Apex compatibility with adequate security when combined with:
+- Long random salts (32 characters)
+- Account lockout policies
+- Rate limiting on login attempts
+
+---
+
+## Deployment
+
+### Manual Deployment
+```bash
+cd volunteer-registration
+sf project deploy start --source-dir force-app/default --wait 20
+```
+
+### CI/CD with GitHub Actions
+
+Automated deployment on push to `dev` branch. See [DEPLOYMENT.md](DEPLOYMENT.md) for setup instructions.
+
+**Required GitHub Secrets:**
+- `SFDX_AUTH_URL` - Salesforce auth URL
+- `SF_USERNAME` - Admin username
+- `SF_PASSWORD` - Admin password
+
+---
+
+## Why Salesforce Sites?
+
+**Problem:** Salesforce access tokens expire every 12-24 hours, requiring constant refresh logic.
+
+**Solution:** Salesforce Sites provides permanent public API access through a guest user profile.
+
+### Benefits
+- ✅ **No Token Expiration** - Guest user doesn't need authentication tokens
+- ✅ **Production Ready** - Standard Salesforce pattern for public APIs
+- ✅ **Secure** - Guest user has minimal, controlled permissions
+- ✅ **Scalable** - Salesforce handles all infrastructure and scaling
+- ✅ **No External Server** - Everything runs on Salesforce platform
+
+### Security Model
+- Guest user can only access explicitly enabled Apex classes
+- Object/field-level security enforced via profile permissions
+- All Apex validation logic still applies
+- Monitor guest activity in Setup → Session Management
+
+---
+
+## Project Structure
+
+```
+volunteer-management-app/
+├── volunteer-registration/
+│   ├── force-app/default/         # Salesforce metadata
+│   │   ├── classes/               # Apex REST APIs
+│   │   │   ├── AuthAPI.cls        # Login endpoint
+│   │   │   ├── VolunteerAPI.cls   # Volunteer CRUD
+│   │   │   ├── EventAPI.cls       # Event CRUD
+│   │   │   ├── RegistrationAPI.cls # Registration CRUD
+│   │   │   ├── VolunteerHoursAPI.cls # Hours tracking
+│   │   │   ├── ValidationUtils.cls # Shared validations
+│   │   │   └── PasswordUtils.cls  # SHA-256 hashing
+│   │   ├── objects/               # Custom objects
+│   │   │   ├── Volunteer__c/
+│   │   │   ├── Event__c/
+│   │   │   ├── Registration__c/
+│   │   │   ├── VolunteerHours__c/
+│   │   │   └── History__c/
+│   │   └── sites/                 # Salesforce Site config
+│   │       └── Volunteer_API.site-meta.xml
+│   └── test/                      # Test scripts
+│       ├── test-site-api.js       # API endpoint tests
+│       └── cleanup-all.js         # Delete test data
+├── database/
+│   └── init/
+│       └── seedData.js            # Seed test data (SHA-256)
+├── .github/workflows/
+│   ├── deploy-salesforce.yml      # CI/CD deployment
+│   └── salesforce-pr-validation.yml # PR validation
+├── SALESFORCE_SITES_SETUP.md      # Site setup guide
+├── APEX_VALIDATIONS.md            # Validation documentation
+├── DEPLOYMENT.md                  # CI/CD setup guide
+└── README.md                      # This file
+```
+
+---
+
+## Troubleshooting
+
+### "Insufficient Privileges" Error
+**Cause:** Guest user profile doesn't have Apex class access.
+
+**Fix:**
+1. Go to Setup → Sites → Your Site → Public Access Settings
+2. Enabled Apex Class Access → Edit
+3. Move all API classes to "Enabled" list
+4. Save
+
+### "No such column" Error
+**Cause:** Custom fields not deployed.
+
+**Fix:**
+```bash
+sf project deploy start --source-dir force-app/default/objects --wait 20
+```
+
+### Site Returns Login Page Instead of JSON
+**Cause:** Site is inactive or guest user lacks permissions.
+
+**Fix:**
+1. Verify site is Active: Setup → Sites
+2. Check Public Access Settings → Enabled Apex Classes
+3. Verify object permissions for guest user
+
+### Token Expiration Issues
+**You shouldn't have token expiration issues!** The Site API doesn't use tokens.
+
+If you're using `SF_ACCESS_TOKEN` for testing, that's for admin CLI operations only. Use `SF_SITE_URL` for API calls.
+
+---
+
+## Additional Resources
+
+- [Salesforce Sites Documentation](https://help.salesforce.com/articleView?id=sf.sites_overview.htm)
+- [Apex REST API Guide](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_rest.htm)
+- [SFDX CLI Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/)
+
+---
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Test locally with `node test/test-site-api.js`
+4. Create pull request (CI/CD will validate)
+5. Merge to `dev` (auto-deploys to Salesforce)
+
+---
+
+## License
+
+MIT License - See LICENSE file for details
+
+---
+
+## Support
+
+For issues or questions:
+1. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+2. Review Salesforce debug logs: Setup → Debug Logs
+3. Open GitHub issue with error details

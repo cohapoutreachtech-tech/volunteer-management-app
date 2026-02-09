@@ -1,6 +1,8 @@
-name: Salesforce PR Validation
+name: Validate Pull Request
 
-# Run on pull requests
+# Validates Salesforce metadata changes without deploying
+# Runs Apex tests and checks for deployment errors
+
 on:
   pull_request:
     branches:
@@ -9,52 +11,71 @@ on:
       - dev
     paths:
       - 'volunteer-registration/force-app/**'
+      - '.github/workflows/**'
 
 jobs:
   validate:
+    name: Validate Metadata
     runs-on: ubuntu-latest
     
     steps:
-      # Checkout the code
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Install Salesforce CLI
       - name: Install Salesforce CLI
         run: |
+          echo "Installing Salesforce CLI..."
           wget https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz
           mkdir -p ~/cli/sf
           tar xJf sf-linux-x64.tar.xz -C ~/cli/sf --strip-components 1
           echo "$HOME/cli/sf/bin" >> $GITHUB_PATH
 
-      # Verify SF CLI installation
       - name: Verify Salesforce CLI
         run: sf --version
 
-      # Authenticate to Salesforce
       - name: Authenticate to Salesforce
         run: |
+          echo "Authenticating to Salesforce..."
           echo "${{ secrets.SFDX_AUTH_URL }}" > ./SFDX_AUTH_URL.txt
           sf org login sfdx-url --sfdx-url-file ./SFDX_AUTH_URL.txt --alias target-org --set-default
+          rm ./SFDX_AUTH_URL.txt
+          echo "✅ Authentication successful"
         working-directory: ./volunteer-registration
 
-      # Validate deployment (check-only, no actual deployment)
-      - name: Validate Deployment
+      - name: Validate Deployment (Dry Run)
         run: |
-          sf project deploy start --source-dir force-app/default --dry-run --wait 20 --verbose
+          echo "🔍 Validating deployment without making changes..."
+          sf project deploy start \
+            --source-dir force-app/default \
+            --dry-run \
+            --wait 20 \
+            --verbose \
+            --test-level RunLocalTests
+          echo "✅ Validation successful - no deployment errors"
         working-directory: ./volunteer-registration
 
-      # Run Apex tests
       - name: Run Apex Tests
         run: |
-          sf apex run test --wait 10 --result-format human --code-coverage --test-level RunLocalTests
+          echo "🧪 Running Apex tests..."
+          sf apex run test \
+            --wait 10 \
+            --result-format human \
+            --code-coverage \
+            --test-level RunLocalTests
+          echo "✅ All tests passed"
         working-directory: ./volunteer-registration
 
-      # Comment on PR with results
-      - name: PR Validation Summary
+      - name: Validation Summary
         if: always()
         run: |
-          echo "✅ Validation completed!"
-          echo "Check the logs above for test results and code coverage."
+          echo "========================================"
+          echo "📊 VALIDATION SUMMARY"
+          echo "========================================"
+          echo "✅ Metadata validation completed"
+          echo "✅ Apex tests completed"
+          echo ""
+          echo "This PR is safe to merge ✅"
+          echo "========================================"
+

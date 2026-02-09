@@ -151,29 +151,59 @@ global with sharing class VolunteerAPI {
                 return;
             }
             
+            // Check for duplicate email
+            if (ValidationUtils.isDuplicateEmail(email, '')) {
+                res.statusCode = 409;
+                res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                    'message' => 'An account with that email already exists, reset your password if you cannot login'
+                }));
+                return;
+            }
+            
             // Validate phone if provided
             if (volunteerData.containsKey('Phone__c') && volunteerData.get('Phone__c') != null) {
                 String phone = (String) volunteerData.get('Phone__c');
                 if (!ValidationUtils.isValidPhone(phone)) {
                     res.statusCode = 400;
                     res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
-                        'message' => 'Invalid phone number format'
+                        'message' => 'Invalid phone number format. Expected format: XXX-XXX-XXXX'
                     }));
                     return;
                 }
             }
             
-            // Check if email already exists
-            List<Volunteer__c> existingVolunteers = [
-                SELECT Id FROM Volunteer__c WHERE Email__c = :email LIMIT 1
-            ];
+            // Validate date formats
+            if (volunteerData.containsKey('Date_of_Birth__c')) {
+                String dobString = String.valueOf(volunteerData.get('Date_of_Birth__c'));
+                if (!ValidationUtils.isValidDateFormat(dobString)) {
+                    res.statusCode = 400;
+                    res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                        'message' => 'Invalid Date_of_Birth__c format. Expected YYYY-MM-DD'
+                    }));
+                    return;
+                }
+            }
             
-            if (!existingVolunteers.isEmpty()) {
-                res.statusCode = 409;
-                res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
-                    'message' => 'An account with that email already exists, reset your password if you cannot login'
-                }));
-                return;
+            if (volunteerData.containsKey('Registration_Date__c')) {
+                String regDateString = String.valueOf(volunteerData.get('Registration_Date__c'));
+                if (!ValidationUtils.isValidDateFormat(regDateString)) {
+                    res.statusCode = 400;
+                    res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                        'message' => 'Invalid Registration_Date__c format. Expected YYYY-MM-DD'
+                    }));
+                    return;
+                }
+            }
+            
+            if (volunteerData.containsKey('Signature_Date__c')) {
+                String sigDateString = String.valueOf(volunteerData.get('Signature_Date__c'));
+                if (!ValidationUtils.isValidDateFormat(sigDateString)) {
+                    res.statusCode = 400;
+                    res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                        'message' => 'Invalid Signature_Date__c format. Expected YYYY-MM-DD'
+                    }));
+                    return;
+                }
             }
             
             // Create volunteer record

@@ -260,6 +260,27 @@ global with sharing class RegistrationAPI {
                 return;
             }
             
+            // Check for duplicate registration
+            if (ValidationUtils.isDuplicateRegistration(volunteerId, eventId, '')) {
+                res.statusCode = 409;
+                res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                    'message' => 'Volunteer is already registered for this event'
+                }));
+                return;
+            }
+            
+            // Validate date format if provided
+            if (registrationData.containsKey('Registration_Date__c') && registrationData.get('Registration_Date__c') != null) {
+                String regDateString = String.valueOf(registrationData.get('Registration_Date__c'));
+                if (!ValidationUtils.isValidDateFormat(regDateString)) {
+                    res.statusCode = 400;
+                    res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                        'message' => 'Invalid Registration_Date__c format. Expected YYYY-MM-DD'
+                    }));
+                    return;
+                }
+            }
+            
             // Create registration
             Registration__c registration = new Registration__c();
             registration.Volunteer__c = volunteerId;
@@ -267,7 +288,7 @@ global with sharing class RegistrationAPI {
             registration.Registration_Status__c = (String) registrationData.get('Registration_Status__c');
             
             // Handle optional fields
-            if (registrationData.containsKey('Registration_Date__c')) {
+            if (registrationData.containsKey('Registration_Date__c') && registrationData.get('Registration_Date__c') != null) {
                 String regDateString = (String) registrationData.get('Registration_Date__c');
                 registration.Registration_Date__c = Date.valueOf(regDateString);
             }

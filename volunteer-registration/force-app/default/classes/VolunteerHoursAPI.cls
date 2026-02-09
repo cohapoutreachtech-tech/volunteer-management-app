@@ -213,6 +213,15 @@ global with sharing class VolunteerHoursAPI {
             String requestBody = req.requestBody.toString();
             Map<String, Object> shiftData = (Map<String, Object>) JSON.deserializeUntyped(requestBody);
             
+            // Validate request body
+            if (shiftData == null || shiftData.isEmpty()) {
+                res.statusCode = 400;
+                res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                    'message' => 'Bad request: Request body must be a valid JSON object.'
+                }));
+                return;
+            }
+            
             // Validate required fields
             if (!shiftData.containsKey('Volunteer__c') || 
                 !shiftData.containsKey('Shift_Date__c') || 
@@ -234,6 +243,15 @@ global with sharing class VolunteerHoursAPI {
                 return;
             }
             
+            // Check if volunteer exists
+            if (!ValidationUtils.recordExists('Volunteer__c', volunteerId)) {
+                res.statusCode = 404;
+                res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                    'message' => 'Volunteer with id ' + volunteerId + ' not found'
+                }));
+                return;
+            }
+            
             // Validate Event ID if provided
             if (shiftData.containsKey('Event__c') && shiftData.get('Event__c') != null) {
                 String eventId = (String) shiftData.get('Event__c');
@@ -241,6 +259,36 @@ global with sharing class VolunteerHoursAPI {
                     res.statusCode = 400;
                     res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
                         'message' => 'Invalid Event__c format'
+                    }));
+                    return;
+                }
+                
+                // Check if event exists
+                if (!ValidationUtils.recordExists('Event__c', eventId)) {
+                    res.statusCode = 404;
+                    res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                        'message' => 'Event with id ' + eventId + ' not found'
+                    }));
+                    return;
+                }
+            }
+            
+            // Validate date format
+            String shiftDateStr = String.valueOf(shiftData.get('Shift_Date__c'));
+            if (!ValidationUtils.isValidDateFormat(shiftDateStr.substring(0, Math.min(10, shiftDateStr.length())))) {
+                res.statusCode = 400;
+                res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                    'message' => 'Invalid Shift_Date__c format. Expected YYYY-MM-DD'
+                }));
+                return;
+            }
+            
+            // Validate Total_Hours__c if provided
+            if (shiftData.containsKey('Total_Hours__c') && shiftData.get('Total_Hours__c') != null) {
+                if (!ValidationUtils.isValidNumber(shiftData.get('Total_Hours__c'))) {
+                    res.statusCode = 400;
+                    res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                        'message' => 'Invalid Total_Hours__c: must be a number'
                     }));
                     return;
                 }
@@ -255,7 +303,6 @@ global with sharing class VolunteerHoursAPI {
             }
             
             // Parse dates and times
-            String shiftDateStr = (String) shiftData.get('Shift_Date__c');
             shift.Shift_Date__c = Date.valueOf(shiftDateStr.substring(0, 10));
             
             String clockInStr = (String) shiftData.get('Clock_In_Time__c');
@@ -294,7 +341,7 @@ global with sharing class VolunteerHoursAPI {
             logActivity('VolunteerHours', 'create', UserInfo.getUserId(), e.getMessage());
             res.statusCode = 500;
             res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
-                'message' => 'Server error.'
+                'message' => 'Server error: ' + e.getMessage()
             }));
         }
     }

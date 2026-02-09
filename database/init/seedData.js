@@ -1,6 +1,9 @@
-const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
-const hashPassword = (plain) => bcrypt.hashSync(plain, 10);
+// Use SHA-256 to match Salesforce Apex PasswordUtils
+const hashPassword = (plain) => {
+    return crypto.createHash('sha256').update(plain).digest('hex');
+};
 
 const volunteers = [
   {

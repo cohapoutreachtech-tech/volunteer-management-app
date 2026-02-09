@@ -1,6 +1,8 @@
 public class PasswordUtils {
     
-    // Hash password using SHA-256 (matches bcrypt concept but simpler for Apex)
+    // Hash password using SHA-256
+    // Note: Apex does not support bcrypt natively. We use SHA-256 for password hashing.
+    // When seeding data from Node.js, use SHA-256 instead of bcrypt to maintain compatibility.
     public static String hashPassword(String password) {
         Blob passwordBlob = Blob.valueOf(password);
         Blob hash = Crypto.generateDigest('SHA-256', passwordBlob);

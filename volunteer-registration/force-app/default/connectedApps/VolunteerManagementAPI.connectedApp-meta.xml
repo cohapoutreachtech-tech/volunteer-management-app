@@ -9,4 +9,8 @@
         <scopes>RefreshToken</scopes>
         <scopes>Api</scopes>
     </oauthConfig>
+    <oauthPolicy>
+        <ipRelaxation>RELAX_IP_RESTRICTIONS</ipRelaxation>
+        <refreshTokenPolicy>infinite</refreshTokenPolicy>
+    </oauthPolicy>
 </ConnectedApp>
