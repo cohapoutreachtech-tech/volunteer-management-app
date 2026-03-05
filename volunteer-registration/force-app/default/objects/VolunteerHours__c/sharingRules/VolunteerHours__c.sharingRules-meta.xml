@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">
+    <sharingOwnerRule>
+        <fullName>AllUsersToAPIGuestAccess</fullName>
+        <accessLevel>Edit</accessLevel>
+        <sharedFrom>
+            <allUsers>true</allUsers>
+        </sharedFrom>
+        <sharedTo>
+            <group>APIGuestAccess</group>
+        </sharedTo>
+    </sharingOwnerRule>
+</SharingRules>

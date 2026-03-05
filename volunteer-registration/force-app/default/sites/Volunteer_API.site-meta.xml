@@ -23,8 +23,11 @@
     <redirectToCustomDomain>false</redirectToCustomDomain>
     <referrerPolicyOriginWhenCrossOrigin>true</referrerPolicyOriginWhenCrossOrigin>
     <selfRegPage>CommunitiesSelfReg</selfRegPage>
-    <siteAdmin>[ADMIN]</siteAdmin>
-    <siteGuestRecordDefaultOwner>[ADMIN]</siteGuestRecordDefaultOwner>
+    <!-- Removed invalid siteAdmin and siteGuestRecordDefaultOwner fields -->
+    <!-- For local development, set the siteAdmin to your Salesforce admin username. For CI/CD, use [ADMIN] and let the workflow replace it. -->
+    <siteAdmin>starwarsgeek14mz.01f8d826fbec@agentforce.com</siteAdmin>
+    <!-- For local development, set the siteGuestRecordDefaultOwner to your Salesforce admin username. For CI/CD, use [ADMIN] and let the workflow replace it. -->
+    <siteGuestRecordDefaultOwner>starwarsgeek14mz.01f8d826fbec@agentforce.com</siteGuestRecordDefaultOwner>
     <siteType>ChatterNetwork</siteType>
     <urlPathPrefix>volunteerapivforcesite</urlPathPrefix>
 </CustomSite>

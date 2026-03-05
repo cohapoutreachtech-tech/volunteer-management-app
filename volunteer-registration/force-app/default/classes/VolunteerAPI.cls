@@ -1,5 +1,5 @@
 @RestResource(urlMapping='/api/volunteers/*')
-global with sharing class VolunteerAPI {
+global without sharing class VolunteerAPI {
     
     private static final List<String> REQUIRED_FIELDS = new List<String>{
         'First_Name__c',
@@ -23,21 +23,46 @@ global with sharing class VolunteerAPI {
         'Offender_Policy_Confirmed__c',
         'Id',
         'CreatedDate',
-        'LastModifiedDate',
-        'OwnerId',
-        'SystemModstamp'
+        'LastModifiedDate'
     };
-    
+
     @HttpGet
     global static void getVolunteers() {
         RestRequest req = RestContext.request;
         RestResponse res = RestContext.response;
-        
+
+        System.debug('VolunteerAPI.getVolunteers: Incoming request: ' + req.requestURI);
+        System.debug('Headers: ' + req.headers);
+
+        // JWT token validation
+        String apiKey = req.headers.get('X-API-KEY');
+        if (apiKey == null || apiKey == '') {
+            System.debug('VolunteerAPI.getVolunteers: Missing X-API-KEY header');
+            logActivity('Volunteer', 'get', UserInfo.getUserId(), 'Missing X-API-KEY header');
+            res.statusCode = 403;
+            res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                'message' => 'Forbidden: X-API-KEY header missing or empty. Ensure your request includes a valid JWT token.'
+            }));
+            return;
+        }
+        Map<String, Object> jwtPayload = JWTUtils.validateToken(apiKey);
+        if (jwtPayload == null) {
+            System.debug('VolunteerAPI.getVolunteers: Invalid or expired JWT token');
+            logActivity('Volunteer', 'get', UserInfo.getUserId(), 'Invalid or expired JWT token');
+            res.statusCode = 403;
+            res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                'message' => 'Forbidden: Invalid or expired JWT token in X-API-KEY header.'
+            }));
+            return;
+        }
+
         String volunteerId = req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1);
-        
+        System.debug('VolunteerAPI.getVolunteers: volunteerId = ' + volunteerId);
+
         try {
-            if (volunteerId == 'volunteers') {
+            if (volunteerId == 'volunteers' || String.isBlank(volunteerId)) {
                 // Get all volunteers
+                System.debug('VolunteerAPI.getVolunteers: Querying all volunteers');
                 List<Volunteer__c> volunteers = [
                     SELECT Id, Name, First_Name__c, Last_Name__c, Email__c, Phone__c, 
                            Date_of_Birth__c, Status__c, Volunteer_Type__c, T_Shirt_Size__c,
@@ -46,69 +71,77 @@ global with sharing class VolunteerAPI {
                     FROM Volunteer__c 
                     ORDER BY CreatedDate DESC
                 ];
-                
+                System.debug('VolunteerAPI.getVolunteers: Found ' + volunteers.size() + ' volunteers');
                 logActivity('Volunteer', 'get', UserInfo.getUserId(), 'All volunteers retrieved');
-                
                 res.statusCode = 200;
                 res.responseBody = Blob.valueOf(JSON.serialize(volunteers));
             } else {
                 // Get single volunteer by ID
+                System.debug('VolunteerAPI.getVolunteers: Querying volunteer by ID: ' + volunteerId);
                 // Validate ID format
                 if (ValidationUtils.isEmptyOrPlaceholder(volunteerId)) {
+                    System.debug('VolunteerAPI.getVolunteers: volunteer id is empty');
                     res.statusCode = 400;
                     res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
                         'message' => 'volunteer id should not be empty'
                     }));
                     return;
                 }
-                
                 if (!ValidationUtils.isValidSalesforceId(volunteerId)) {
+                    System.debug('VolunteerAPI.getVolunteers: Invalid volunteer id format');
                     res.statusCode = 400;
                     res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
                         'message' => 'Invalid volunteer id format'
                     }));
                     return;
                 }
-                
                 List<Volunteer__c> volunteers = [
                     SELECT Id, Name, First_Name__c, Last_Name__c, Email__c, Phone__c, 
                            Date_of_Birth__c, Status__c, Volunteer_Type__c, T_Shirt_Size__c,
                            Why_Volunteer__c, Community_Service_Hours__c, Electronic_Signature__c,
                            Registration_Date__c, Signature_Date__c
                     FROM Volunteer__c 
-                    WHERE Id = :volunteerId 
-                    LIMIT 1
+                    WHERE Id = :volunteerId
                 ];
-                
                 if (volunteers.isEmpty()) {
-                    logActivity('Volunteer', 'get', UserInfo.getUserId(), 'Volunteer not found');
+                    System.debug('VolunteerAPI.getVolunteers: No volunteer found for id: ' + volunteerId);
                     res.statusCode = 404;
                     res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
-                        'message' => 'Volunteer with id ' + volunteerId + ' not found'
+                        'message' => 'Volunteer not found'
                     }));
-                    return;
+                } else {
+                    logActivity('Volunteer', 'get', UserInfo.getUserId(), 'Single volunteer retrieved');
+                    res.statusCode = 200;
+                    res.responseBody = Blob.valueOf(JSON.serialize(volunteers[0]));
                 }
-                
-                Volunteer__c volunteer = volunteers[0];
-                logActivity('Volunteer', 'get', volunteer.Id, 'Volunteer ' + volunteer.Id + ' retrieved');
-                
-                res.statusCode = 200;
-                res.responseBody = Blob.valueOf(JSON.serialize(volunteer));
             }
         } catch (Exception e) {
-            logActivity('Volunteer', 'get', UserInfo.getUserId(), e.getMessage());
+            logActivity('Volunteer', 'get', UserInfo.getUserId(), 'Error: ' + e.getMessage());
             res.statusCode = 500;
             res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
-                'message' => 'Server error.'
+                'message' => 'Internal server error',
+                'error' => e.getMessage()
             }));
         }
     }
-    
-    @HttpPost
+
+    // ...existing code...
+// ...existing code...
     global static void createVolunteer() {
         RestRequest req = RestContext.request;
         RestResponse res = RestContext.response;
         
+        // JWT token validation
+        String apiKey = RestContext.request.headers.get('X-API-KEY');
+        Map<String, Object> jwtPayload = JWTUtils.validateToken(apiKey);
+        if (jwtPayload == null) {
+            RestContext.response.statusCode = 401;
+            RestContext.response.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                'message' => 'Unauthorized: Invalid or missing token'
+            }));
+            return;
+        }
+
         try {
             String requestBody = req.requestBody.toString();
             Map<String, Object> volunteerData = (Map<String, Object>) JSON.deserializeUntyped(requestBody);
@@ -275,8 +308,19 @@ global with sharing class VolunteerAPI {
         RestRequest req = RestContext.request;
         RestResponse res = RestContext.response;
         
+        // JWT token validation
+        String apiKey = RestContext.request.headers.get('X-API-KEY');
+        Map<String, Object> jwtPayload = JWTUtils.validateToken(apiKey);
+        if (jwtPayload == null) {
+            RestContext.response.statusCode = 401;
+            RestContext.response.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                'message' => 'Unauthorized: Invalid or missing token'
+            }));
+            return;
+        }
+
         String volunteerId = req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1);
-        
+
         try {
             // Validate ID format
             if (ValidationUtils.isEmptyOrPlaceholder(volunteerId)) {
@@ -433,8 +477,19 @@ global with sharing class VolunteerAPI {
         RestRequest req = RestContext.request;
         RestResponse res = RestContext.response;
         
+        // JWT token validation
+        String apiKey = RestContext.request.headers.get('X-API-KEY');
+        Map<String, Object> jwtPayload = JWTUtils.validateToken(apiKey);
+        if (jwtPayload == null) {
+            RestContext.response.statusCode = 401;
+            RestContext.response.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                'message' => 'Unauthorized: Invalid or missing token'
+            }));
+            return;
+        }
+
         String volunteerId = req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1);
-        
+
         try {
             // Validate ID format
             if (ValidationUtils.isEmptyOrPlaceholder(volunteerId)) {

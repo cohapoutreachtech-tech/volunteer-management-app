@@ -70,9 +70,9 @@ async function testCreateValidEvent() {
 
   const response = await fetch(`${API_URL}/api/events`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(event)
   });
@@ -97,9 +97,9 @@ async function testCreateMissingTitle() {
 
   const response = await fetch(`${API_URL}/api/events`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(event)
   });
@@ -123,9 +123,9 @@ async function testCreateMissingDescription() {
 
   const response = await fetch(`${API_URL}/api/events`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(event)
   });
@@ -150,9 +150,9 @@ async function testCreateInvalidDateFormat() {
 
   const response = await fetch(`${API_URL}/api/events`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(event)
   });
@@ -178,9 +178,9 @@ async function testCreateInvalidMaxVolunteers() {
 
   const response = await fetch(`${API_URL}/api/events`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(event)
   });
@@ -206,9 +206,9 @@ async function testCreateInvalidURL() {
 
   const response = await fetch(`${API_URL}/api/events`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(event)
   });
@@ -227,7 +227,7 @@ async function testGetValidEvent() {
 
   const response = await fetch(`${API_URL}/api/events/${testEventId}`, {
     method: 'GET',
-    headers: { 'Authorization': `Bearer ${authToken}` }
+     headers: { 'X-API-KEY': `${authToken}` }
   });
 
   const data = await response.json();
@@ -244,7 +244,7 @@ async function testGetNonExistentEvent() {
 
   const response = await fetch(`${API_URL}/api/events/${fakeId}`, {
     method: 'GET',
-    headers: { 'Authorization': `Bearer ${authToken}` }
+     headers: { 'X-API-KEY': `${authToken}` }
   });
 
   const data = await response.json();
@@ -259,13 +259,14 @@ async function testGetNonExistentEvent() {
 async function testGetAllEvents() {
   const response = await fetch(`${API_URL}/api/events`, {
     method: 'GET',
-    headers: { 'Authorization': `Bearer ${authToken}` }
+     headers: { 'X-API-KEY': `${authToken}` }
   });
 
   const data = await response.json();
 
   assert(response.status === 200, `Expected 200, got ${response.status}`);
   assert(Array.isArray(data), 'Expected array of events');
+  assert(data.length > 0, 'Expected at least one event in response');
 }
 
 /**
@@ -283,7 +284,7 @@ async function testUpdateValidEvent() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(updates)
   });
@@ -304,7 +305,7 @@ async function testUpdateNonExistentEvent() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(updates)
   });
@@ -329,7 +330,7 @@ async function testUpdateInvalidDate() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(updates)
   });
@@ -357,7 +358,7 @@ async function testDeleteValidEvent() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(tempEvent)
   });
@@ -368,7 +369,7 @@ async function testDeleteValidEvent() {
   // Now delete it
   const response = await fetch(`${API_URL}/api/events/${tempEventId}`, {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${authToken}` }
+      headers: { 'X-API-KEY': `${authToken}` }
   });
 
   assert(response.status === 200 || response.status === 204, `Expected 200 or 204, got ${response.status}`);
@@ -382,7 +383,7 @@ async function testDeleteNonExistentEvent() {
 
   const response = await fetch(`${API_URL}/api/events/${fakeId}`, {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${authToken}` }
+     headers: { 'X-API-KEY': `${authToken}` }
   });
 
   const data = await response.json();
@@ -408,7 +409,7 @@ async function testCreateNegativeMaxVolunteers() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(event)
   });
@@ -435,7 +436,7 @@ async function testCreatePastDate() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+        'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(event)
   });
@@ -506,7 +507,7 @@ async function runAllTests() {
     try {
       await fetch(`${API_URL}/api/events/${testEventId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${authToken}` }
+          headers: { 'X-API-KEY': `${authToken}` }
       });
       console.log('✅ Test event deleted');
     } catch (error) {

@@ -1,40 +1,66 @@
 @RestResource(urlMapping='/api/events/*')
-global with sharing class EventAPI {
+global without sharing class EventAPI {
     
     private static final List<String> REQUIRED_FIELDS = new List<String>{
-        'Title__c',
-        'Description__c',
         'Location__c',
         'Event_Date__c',
         'Event_Status__c'
     };
-    
+
+
     @HttpGet
     global static void getEvents() {
         RestRequest req = RestContext.request;
         RestResponse res = RestContext.response;
-        
+
+        System.debug('EventAPI.getEvents: Incoming request: ' + req.requestURI);
+        System.debug('Headers: ' + req.headers);
+
+        // JWT token validation
+        String apiKey = req.headers.get('X-API-KEY');
+        if (apiKey == null || apiKey == '') {
+            System.debug('EventAPI.getEvents: Missing X-API-KEY header');
+            logActivity('Event', 'get', UserInfo.getUserId(), 'Missing X-API-KEY header');
+            res.statusCode = 403;
+            res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                'message' => 'Forbidden: X-API-KEY header missing or empty. Ensure your request includes a valid JWT token.'
+            }));
+            return;
+        }
+        Map<String, Object> jwtPayload = JWTUtils.validateToken(apiKey);
+        if (jwtPayload == null) {
+            System.debug('EventAPI.getEvents: Invalid or expired JWT token');
+            logActivity('Event', 'get', UserInfo.getUserId(), 'Invalid or expired JWT token');
+            res.statusCode = 403;
+            res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
+                'message' => 'Forbidden: Invalid or expired JWT token in X-API-KEY header.'
+            }));
+            return;
+        }
+
         String eventId = req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1);
-        
+        System.debug('EventAPI.getEvents: eventId = ' + eventId);
+
         try {
             if (eventId != 'events') {
                 // Validate ID format
+                System.debug('EventAPI.getEvents: Querying event by ID: ' + eventId);
                 if (ValidationUtils.isEmptyOrPlaceholder(eventId)) {
+                    System.debug('EventAPI.getEvents: event id is empty');
                     res.statusCode = 400;
                     res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
                         'message' => 'event id should not be empty'
                     }));
                     return;
                 }
-                
                 if (!ValidationUtils.isValidSalesforceId(eventId)) {
+                    System.debug('EventAPI.getEvents: Invalid event id format');
                     res.statusCode = 400;
                     res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
                         'message' => 'Invalid event id format'
                     }));
                     return;
                 }
-                
                 // Get single event
                 List<Event__c> events = [
                     SELECT Id, Name, Title__c, Description__c, Location__c, Event_Date__c, 
@@ -45,7 +71,7 @@ global with sharing class EventAPI {
                     WHERE Id = :eventId 
                     LIMIT 1
                 ];
-                
+                System.debug('EventAPI.getEvents: Query result size: ' + events.size());
                 if (events.isEmpty()) {
                     res.statusCode = 404;
                     res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
@@ -53,11 +79,11 @@ global with sharing class EventAPI {
                     }));
                     return;
                 }
-                
                 res.statusCode = 200;
                 res.responseBody = Blob.valueOf(JSON.serialize(events[0]));
             } else {
                 // Get all events
+                System.debug('EventAPI.getEvents: Querying all events');
                 List<Event__c> events = [
                     SELECT Id, Name, Title__c, Description__c, Location__c, Event_Date__c, 
                            Event_Time__c, Event_Status__c, Max_Volunteers__c, 
@@ -66,17 +92,21 @@ global with sharing class EventAPI {
                     FROM Event__c 
                     ORDER BY Event_Date__c DESC
                 ];
-                
+                System.debug('EventAPI.getEvents: Found ' + events.size() + ' events');
                 res.statusCode = 200;
                 res.responseBody = Blob.valueOf(JSON.serialize(events));
             }
         } catch (Exception e) {
+            System.debug('EventAPI.getEvents: Exception: ' + e.getMessage() + '\n' + e.getStackTraceString());
             res.statusCode = 500;
             res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, String>{
                 'message' => 'Server error: ' + e.getMessage()
             }));
         }
     }
+
+    // Helper method to log activities
+    // ...existing code...
     
     @HttpPost
     global static void createEvent() {

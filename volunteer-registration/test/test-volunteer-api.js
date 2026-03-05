@@ -83,7 +83,7 @@ async function testCreateValidVolunteer() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(volunteer)
   });
@@ -109,7 +109,7 @@ async function testCreateMissingFirstName() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(volunteer)
   });
@@ -134,7 +134,7 @@ async function testCreateMissingEmail() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(volunteer)
   });
@@ -160,7 +160,7 @@ async function testCreateInvalidEmail() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(volunteer)
   });
@@ -186,7 +186,7 @@ async function testCreateDuplicateEmail() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(volunteer)
   });
@@ -213,7 +213,7 @@ async function testCreateInvalidDateFormat() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(volunteer)
   });
@@ -239,7 +239,7 @@ async function testCreateInvalidPhone() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(volunteer)
   });
@@ -259,7 +259,7 @@ async function testGetValidVolunteer() {
   const response = await fetch(`${API_URL}/api/volunteers/${testVolunteerId}`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     }
   });
 
@@ -278,7 +278,7 @@ async function testGetNonExistentVolunteer() {
   const response = await fetch(`${API_URL}/api/volunteers/${fakeId}`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     }
   });
 
@@ -297,7 +297,7 @@ async function testGetInvalidIdFormat() {
   const response = await fetch(`${API_URL}/api/volunteers/${invalidId}`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     }
   });
 
@@ -314,7 +314,7 @@ async function testGetAllVolunteers() {
   const response = await fetch(`${API_URL}/api/volunteers`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     }
   });
 
@@ -322,6 +322,7 @@ async function testGetAllVolunteers() {
 
   assert(response.status === 200, `Expected 200, got ${response.status}`);
   assert(Array.isArray(data), 'Expected array of volunteers');
+  assert(data.length > 0, 'Expected at least one volunteer in response');
 }
 
 /**
@@ -339,7 +340,7 @@ async function testUpdateValidVolunteer() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(updates)
   });
@@ -360,7 +361,7 @@ async function testUpdateNonExistentVolunteer() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(updates)
   });
@@ -385,7 +386,7 @@ async function testUpdateInvalidDate() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(updates)
   });
@@ -417,7 +418,7 @@ async function testInvalidToken() {
   const response = await fetch(`${API_URL}/api/volunteers`, {
     method: 'GET',
     headers: {
-      'Authorization': 'Bearer invalid-token-here'
+      'X-API-KEY': 'invalid-token-here'
     }
   });
 
@@ -444,7 +445,7 @@ async function testCreateWithExtraFields() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(volunteer)
   });
@@ -523,7 +524,7 @@ async function runAllTests() {
     try {
       await fetch(`${API_URL}/api/volunteers/${testVolunteerId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${authToken}` }
+        headers: { 'X-API-KEY': `${authToken}` }
       });
       console.log('✅ Test volunteer deleted');
     } catch (error) {

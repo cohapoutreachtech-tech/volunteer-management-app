@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>History</label>
+    <pluralLabel>Histories</pluralLabel>
+    <nameField>
+        <label>History Number</label>
+        <type>Text</type>
+    </nameField>
+    <sharingModel>ReadWrite</sharingModel>
+    <enableSharing>true</enableSharing>
+    <visibility>Public</visibility>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <externalSharingModel>Private</externalSharingModel>
+    <sharingRules>
+        <ownerRules>
+            <fullName>AllUsers_to_APIGuestAccess</fullName>
+            <accessLevel>Edit</accessLevel>
+            <sharedTo>
+                <group>APIGuestAccess</group>
+            </sharedTo>
+            <sharedFrom>
+                <allUsers>true</allUsers>
+            </sharedFrom>
+            <label>All Users to API Guest Access</label>
+        </ownerRules>
+    </sharingRules>
+</CustomObject>

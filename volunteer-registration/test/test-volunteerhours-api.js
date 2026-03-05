@@ -63,7 +63,7 @@ async function createTestEvent() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(event)
   });
@@ -91,7 +91,7 @@ async function testCreateValidHours() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(hours)
   });
@@ -119,7 +119,7 @@ async function testCreateNonExistentVolunteer() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(hours)
   });
@@ -146,7 +146,7 @@ async function testCreateNonExistentEvent() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(hours)
   });
@@ -172,7 +172,7 @@ async function testCreateMissingVolunteer() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(hours)
   });
@@ -198,7 +198,7 @@ async function testCreateMissingEvent() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(hours)
   });
@@ -225,7 +225,7 @@ async function testCreateInvalidDateFormat() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(hours)
   });
@@ -252,7 +252,7 @@ async function testCreateInvalidHoursString() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(hours)
   });
@@ -279,7 +279,7 @@ async function testCreateNegativeHours() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(hours)
   });
@@ -306,7 +306,7 @@ async function testCreateZeroHours() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(hours)
   });
@@ -325,7 +325,7 @@ async function testGetValidHours() {
 
   const response = await fetch(`${API_URL}/api/volunteerhours/${testHoursId}`, {
     method: 'GET',
-    headers: { 'Authorization': `Bearer ${authToken}` }
+    headers: { 'X-API-KEY': `${authToken}` }
   });
 
   const data = await response.json();
@@ -342,7 +342,7 @@ async function testGetNonExistentHours() {
 
   const response = await fetch(`${API_URL}/api/volunteerhours/${fakeId}`, {
     method: 'GET',
-    headers: { 'Authorization': `Bearer ${authToken}` }
+    headers: { 'X-API-KEY': `${authToken}` }
   });
 
   const data = await response.json();
@@ -357,13 +357,14 @@ async function testGetNonExistentHours() {
 async function testGetByVolunteer() {
   const response = await fetch(`${API_URL}/api/volunteerhours/volunteer/${testVolunteerId}`, {
     method: 'GET',
-    headers: { 'Authorization': `Bearer ${authToken}` }
+    headers: { 'X-API-KEY': `${authToken}` }
   });
 
   const data = await response.json();
 
   assert(response.status === 200, `Expected 200, got ${response.status}`);
   assert(Array.isArray(data), 'Expected array of hours records');
+  assert(data.length > 0, 'Expected at least one volunteer hours record in response');
 }
 
 /**
@@ -372,13 +373,14 @@ async function testGetByVolunteer() {
 async function testGetByEvent() {
   const response = await fetch(`${API_URL}/api/volunteerhours/event/${testEventId}`, {
     method: 'GET',
-    headers: { 'Authorization': `Bearer ${authToken}` }
+    headers: { 'X-API-KEY': `${authToken}` }
   });
 
   const data = await response.json();
 
   assert(response.status === 200, `Expected 200, got ${response.status}`);
   assert(Array.isArray(data), 'Expected array of hours records');
+  assert(data.length > 0, 'Expected at least one volunteer hours record in response');
 }
 
 /**
@@ -396,7 +398,7 @@ async function testUpdateValidHours() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(updates)
   });
@@ -415,7 +417,7 @@ async function testUpdateNonExistentHours() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(updates)
   });
@@ -440,7 +442,7 @@ async function testUpdateInvalidHours() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`
+      'X-API-KEY': `${authToken}`
     },
     body: JSON.stringify(updates)
   });
@@ -517,7 +519,7 @@ async function runAllTests() {
     try {
       await fetch(`${API_URL}/api/volunteerhours/${testHoursId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${authToken}` }
+        headers: { 'X-API-KEY': `${authToken}` }
       });
     } catch (error) {}
   }
@@ -525,7 +527,7 @@ async function runAllTests() {
     try {
       await fetch(`${API_URL}/api/events/${testEventId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${authToken}` }
+        headers: { 'X-API-KEY': `${authToken}` }
       });
     } catch (error) {}
   }

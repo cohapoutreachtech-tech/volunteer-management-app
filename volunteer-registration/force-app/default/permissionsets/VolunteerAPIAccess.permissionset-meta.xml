@@ -6,4 +6,146 @@
         <enabled>true</enabled>
         <name>ApiEnabled</name>
     </userPermissions>
+    <!-- CRUD permissions for custom objects -->
+    <objectPermissions>
+        <object>Event__c</object>
+        <allowRead>true</allowRead>
+        <allowCreate>true</allowCreate>
+        <!-- allowEdit removed for guest user license compliance -->
+        <!-- allowDelete removed for guest user license compliance -->
+        <!-- viewAllRecords removed for guest user license compliance -->
+        <!-- modifyAllRecords removed for guest user license compliance -->
+    </objectPermissions>
+    <objectPermissions>
+        <object>History__c</object>
+        <allowRead>true</allowRead>
+        <allowCreate>true</allowCreate>
+        <!-- allowEdit removed for guest user license compliance -->
+        <!-- allowDelete removed for guest user license compliance -->
+        <!-- viewAllRecords removed for guest user license compliance -->
+        <!-- modifyAllRecords removed for guest user license compliance -->
+    </objectPermissions>
+    <objectPermissions>
+        <object>Registration__c</object>
+        <allowRead>true</allowRead>
+        <allowCreate>true</allowCreate>
+        <!-- allowEdit removed for guest user license compliance -->
+        <!-- allowDelete removed for guest user license compliance -->
+        <!-- viewAllRecords removed for guest user license compliance -->
+        <!-- modifyAllRecords removed for guest user license compliance -->
+    </objectPermissions>
+    <objectPermissions>
+        <object>Volunteer__c</object>
+        <allowRead>true</allowRead>
+        <allowCreate>true</allowCreate>
+        <!-- allowEdit removed for guest user license compliance -->
+        <!-- allowDelete removed for guest user license compliance -->
+        <!-- viewAllRecords removed for guest user license compliance -->
+        <!-- modifyAllRecords removed for guest user license compliance -->
+    </objectPermissions>
+    <objectPermissions>
+        <object>VolunteerHours__c</object>
+        <allowRead>true</allowRead>
+        <allowCreate>true</allowCreate>
+        <!-- allowEdit removed for guest user license compliance -->
+        <!-- allowDelete removed for guest user license compliance -->
+        <!-- viewAllRecords removed for guest user license compliance -->
+        <!-- modifyAllRecords removed for guest user license compliance -->
+    </objectPermissions>
+    <!-- Apex class access for endpoints and utils -->
+    <classAccesses>
+        <apexClass>VolunteerAPI</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EventAPI</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RegistrationAPI</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>VolunteerHoursAPI</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>JWTUtils</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>ValidationUtils</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+
+    <!-- Field-level permissions for Volunteer__c -->
+    <fieldPermissions><field>Volunteer__c.Email__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Phone__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Date_of_Birth__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Volunteer_Type__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Company_Name__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Profile_Picture_URL__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Facebook_Handle__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Instagram_Handle__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Text_Opt_In__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.T_Shirt_Size__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Why_Volunteer__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Events_Signed_Up__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Total_Hours_Available__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Community_Service_Hours__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Volunteer_Assignments__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Other_Assignment__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Tasks_to_Avoid__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Skills_to_Use__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Certifications__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Certification_File_URL__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Time_Preference__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Day_Preference__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Location_Preference__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Comfortable_With__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Accommodations_Needed__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Offender_Policy_Confirmed__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Additional_Comments__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Status__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Total_Hours_Worked__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Volunteer__c.Pass_Hash__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+
+    <!-- Field-level permissions for Event__c -->
+    <fieldPermissions><field>Event__c.Event_Time__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Location__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Description__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Image_1_URL__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Image_2_URL__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Image_3_URL__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Created_By__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Created_Date__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Event_Status__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Max_Volunteers__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Registered_Volunteers__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Event__c.Checked_In_Volunteers__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+
+    <!-- Field-level permissions for Registration__c -->
+    <fieldPermissions><field>Registration__c.Registration_Status__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Registration__c.Check_In_Time__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Registration__c.Check_Out_Time__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Registration__c.Attended__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>Registration__c.Notes__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+
+    <!-- Field-level permissions for VolunteerHours__c -->
+    <fieldPermissions><field>VolunteerHours__c.Event__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>VolunteerHours__c.Clock_Out_Time__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>VolunteerHours__c.Total_Hours__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>VolunteerHours__c.Approval_Status__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>VolunteerHours__c.Approved_By__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>VolunteerHours__c.Approved_Date__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>VolunteerHours__c.Rejection_Reason__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>VolunteerHours__c.Submitted_Date__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>VolunteerHours__c.Notes__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+
+    <!-- Field-level permissions for History__c -->
+    <fieldPermissions><field>History__c.Schema__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>History__c.Activity_Type__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>History__c.User__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>History__c.Activity_Timestamp__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
+    <fieldPermissions><field>History__c.Activity_Response__c</field><readable>true</readable><editable>false</editable></fieldPermissions>
 </PermissionSet>
