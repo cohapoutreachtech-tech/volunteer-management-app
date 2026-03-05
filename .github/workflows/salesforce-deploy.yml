@@ -16,7 +16,6 @@ name: Deploy to Salesforce
 on:
   push:
     branches:
-      - dev
       - main
     paths:
       - 'volunteer-registration/force-app/**'
