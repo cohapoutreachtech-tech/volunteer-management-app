@@ -7,8 +7,8 @@
     "start-api": "nodemon volunteer-registration/backend/server.js",
     "dev-api": "nodemon volunteer-registration/backend/server.js",
     "start-ui": "react-scripts start",
-    "build": "next build",
-    "test": "react-scripts test",
+    "build": "node -e \"console.log('No build step required for the API-only repository.')\"",
+    "test": "node -e \"console.log('No tests configured for the API-only repository.')\"",
     "eject": "react-scripts eject",
     "dev": "next dev",
     "init-db": "node database/init/initDB.js"
