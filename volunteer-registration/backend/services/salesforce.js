@@ -1,7 +1,11 @@
 const path = require('path');
+const fs = require('fs');
 const jsforce = require('jsforce');
 const debug = require('debug')('app:salesforce');
-require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') }); // Load .env from root
+const envPath = path.resolve(__dirname, '../../../.env');
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+}
 
 let conn = null;
 

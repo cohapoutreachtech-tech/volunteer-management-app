@@ -6,7 +6,11 @@
 
 const jsforce = require('jsforce');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
+const fs = require('fs');
+const envPath = path.resolve(process.cwd(), '.env');
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+}
 
 const sfConfig = require('../config/salesForceConfig');
 

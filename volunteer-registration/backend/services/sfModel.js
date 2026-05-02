@@ -1,5 +1,10 @@
 const sf = require('./salesforce');
-require('dotenv').config();
+const path = require('path');
+const fs = require('fs');
+const envPath = path.resolve(__dirname, '../../../.env');
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+}
 
 class SFQuery {
   constructor(model, filter) {

@@ -9,12 +9,14 @@ Features
 
 Getting started
 
-1. Copy environment example and set values:
+1. Configure environment variables (Azure App Settings or local `.env` for development):
 
 ```
 cp .env.example .env
 # then edit .env to set SF secrets and JWT_SECRET
 ```
+
+   In Azure App Service, set the same keys in **Configuration → Application settings** instead of creating a `.env` file.
 
 2. Install dependencies:
 

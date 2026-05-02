@@ -1,7 +1,10 @@
 const sfConfig = require('../database/config/salesForceConfig');
-// Load .env
 const path = require('path');
-require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
+const fs = require('fs');
+const envPath = path.resolve(process.cwd(), '.env');
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+}
 
 (async () => {
   try {
