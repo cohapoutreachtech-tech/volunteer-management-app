@@ -24,7 +24,7 @@ This single command will:
 1. **Salesforce CLI** installed: `npm install -g @salesforce/cli`
 2. **Authenticate** (one-time): `sf org login web --alias dev-org`
 3. **Node dependencies**: `npm install` (from project root)
-4. **Environment variables** (Azure App Settings or local `.env`) - initDB.js reads from `process.env`
+4. **Environment variables** (Azure App Settings or your shell) - initDB.js reads from `process.env`
 
 ## Directory Structure
 

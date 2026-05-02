@@ -15,13 +15,6 @@
  * - History records (if any are defined)
  */
 
-const path = require('path');
-const fs = require('fs');
-const envPath = path.resolve(__dirname, '../../.env');
-if (fs.existsSync(envPath)) {
-  require('dotenv').config({ path: envPath });
-}
-
 const sfConfig = require('../config/salesForceConfig');
 const jsforce = require('jsforce');
 const seedData = require('./seedData');

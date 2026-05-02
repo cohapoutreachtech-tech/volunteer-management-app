@@ -2,12 +2,6 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-// Load local .env from project root (two levels up from database/init/) when present
-const envPath = path.resolve(__dirname, '../../.env');
-if (fs.existsSync(envPath)) {
-  require('dotenv').config({ path: envPath });
-}
-
 const sfConfig = require('../config/salesForceConfig');
 const jsforce = require('jsforce');
 
@@ -28,7 +22,7 @@ function validateCredentials() {
   
   if (missing.length > 0) {
     log(`Missing required environment variables: ${missing.join(', ')}`, 'error');
-    log('Please ensure required environment variables are set (Azure App Settings or local .env):', 'info');
+    log('Please ensure required environment variables are set (Azure App Settings or your shell):', 'info');
     log('  SF_ACCESS_TOKEN=<your_token>', 'info');
     log('  SF_INSTANCE_URL=<your_instance_url>', 'info');
     log('\nYou can get these by running:', 'info');
