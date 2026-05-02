@@ -1,5 +1,4 @@
 const sf = require('./salesforce');
-require('dotenv').config();
 
 class SFQuery {
   constructor(model, filter) {

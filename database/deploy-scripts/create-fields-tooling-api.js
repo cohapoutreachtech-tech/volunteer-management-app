@@ -5,8 +5,6 @@
  */
 
 const jsforce = require('jsforce');
-const path = require('path');
-require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
 
 const sfConfig = require('../config/salesForceConfig');
 

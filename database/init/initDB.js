@@ -2,9 +2,6 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-// Load .env from project root (two levels up from database/init/)
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
-
 const sfConfig = require('../config/salesForceConfig');
 const jsforce = require('jsforce');
 
@@ -25,7 +22,7 @@ function validateCredentials() {
   
   if (missing.length > 0) {
     log(`Missing required environment variables: ${missing.join(', ')}`, 'error');
-    log('Please ensure your .env file contains:', 'info');
+    log('Please ensure required environment variables are set (Azure App Settings or your shell):', 'info');
     log('  SF_ACCESS_TOKEN=<your_token>', 'info');
     log('  SF_INSTANCE_URL=<your_instance_url>', 'info');
     log('\nYou can get these by running:', 'info');
@@ -33,7 +30,7 @@ function validateCredentials() {
     return false;
   }
   
-  log(`✓ Loaded credentials from .env`, 'success');
+  log('✓ Loaded credentials from environment variables', 'success');
   log(`  Instance: ${process.env.SF_INSTANCE_URL}`, 'info');
   log(`  Token: ${process.env.SF_ACCESS_TOKEN.substring(0, 20)}...`, 'info');
   return true;
@@ -625,7 +622,7 @@ async function initializeDB() {
   console.log('  (Deletion + Deployment + Page Layouts + Validation + Seeding)');
   console.log('='.repeat(70) + '\n');
   
-  // Validate credentials are loaded from .env
+  // Validate credentials are loaded from environment variables
   if (!validateCredentials()) {
     process.exit(1);
   }

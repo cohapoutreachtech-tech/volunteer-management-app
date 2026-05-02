@@ -1,5 +1,3 @@
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') }); // Load .env from root
 const express = require('express');
 const cors = require('cors');
 const salesforce = require('./services/salesforce'); // Use Salesforce instead of MongoDB

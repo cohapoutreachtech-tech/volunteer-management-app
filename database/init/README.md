@@ -70,7 +70,7 @@ After running `initDB.js`, you'll have these test accounts:
 
 1. **Salesforce CLI** (`sf` command) installed
 2. **Authenticated org**: `sf org login web --alias dev-org`
-3. **Environment variables** in `.env` file:
+3. **Environment variables** (Azure App Settings or your shell):
    ```
    SF_ACCESS_TOKEN=<token>
    SF_INSTANCE_URL=https://your-instance.salesforce.com
@@ -119,7 +119,7 @@ initDB.js (Main Orchestrator)
 - **Solution**: Page layouts are now deployed automatically. If still not visible, check Salesforce Setup → Object Manager → Volunteer → Page Layouts
 
 **Issue**: Authentication errors
-- **Solution**: Update `.env` file with fresh token from `sf org display --json`
+- **Solution**: Update the environment variables with a fresh token from `sf org display --json`
 
 **Issue**: "Field not found" errors during seeding
 - **Solution**: Re-run `node database/init/initDB.js` - it includes a 30s metadata refresh wait
