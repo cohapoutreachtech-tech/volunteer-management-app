@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       deploy_branch:
-        description: Branch to deploy
+        description: Branch to deploy (defaults to sales-force-poc)
         required: false
 
 env:
