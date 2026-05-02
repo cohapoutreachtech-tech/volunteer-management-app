@@ -8,6 +8,14 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      deploy_branch:
+        description: Branch to deploy
+        required: false
+        default: sales-force-poc
+
+env:
+  DEPLOY_BRANCH: sales-force-poc
 
 jobs:
   build:
@@ -18,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: sales-force-poc
+          ref: ${{ github.event.inputs.deploy_branch || env.DEPLOY_BRANCH }}
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
