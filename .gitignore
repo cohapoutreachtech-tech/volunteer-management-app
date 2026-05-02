@@ -6,6 +6,7 @@
 
 # production
 */build
+.next
 
 # do not track log files
 npm-debug.log*
