@@ -71,6 +71,7 @@ jobs:
           app-name: 'volunteer-management-app'
           slot-name: 'Production'
           package: .
+          startup-command: 'npm run start-api'
       
       - name: Verify deployment login
         env:
