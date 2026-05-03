@@ -103,12 +103,23 @@ jobs:
             rm -f "$payload_file"
           }
           trap cleanup EXIT
-          cat > "$payload_file" <<EOF
-          {"email":"${LOGIN_EMAIL}","password":"${LOGIN_PASSWORD}"}
-          EOF
-          response=$(curl -s -w "\n%{http_code}" -X POST "${BASE_URL}/auth/login" \
+          jq -n --arg email "$LOGIN_EMAIL" --arg password "$LOGIN_PASSWORD" \
+            '{email: $email, password: $password}' > "$payload_file"
+          set +e
+          response=$(curl -sS -w "\n%{http_code}" --connect-timeout 10 --max-time 30 \
+            -X POST "${BASE_URL}/auth/login" \
             -H "Content-Type: application/json" \
             --data-binary @"$payload_file")
+          curl_exit=$?
+          set -e
+          if [ "$curl_exit" -ne 0 ]; then
+            echo "Login check failed: curl exited with status $curl_exit"
+            exit 1
+          fi
+          if [ -z "$response" ]; then
+            echo "Login check failed: empty response from server"
+            exit 1
+          fi
           status="${response##*$'\n'}"
           body="${response%$'\n'*}"
           if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
