@@ -77,10 +77,9 @@ jobs:
           BASE_URL: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
           LOGIN_EMAIL: ${{ secrets.DEPLOYMENT_LOGIN_EMAIL }}
           LOGIN_PASSWORD: ${{ secrets.DEPLOYMENT_LOGIN_PASSWORD }}
-          # Optional workflow vars: DEPLOYMENT_CONNECT_TIMEOUT_SECONDS, DEPLOYMENT_MAX_TIME_SECONDS, DEPLOYMENT_MAX_ERROR_OUTPUT_LENGTH
-          CONNECT_TIMEOUT_SECONDS: ${{ vars.DEPLOYMENT_CONNECT_TIMEOUT_SECONDS }}
-          MAX_TIME_SECONDS: ${{ vars.DEPLOYMENT_MAX_TIME_SECONDS }}
-          MAX_ERROR_OUTPUT_LENGTH: ${{ vars.DEPLOYMENT_MAX_ERROR_OUTPUT_LENGTH }}
+          CONNECT_TIMEOUT_SECONDS: 10
+          MAX_TIME_SECONDS: 30
+          MAX_ERROR_OUTPUT_LENGTH: 500
         run: |
           set -euo pipefail
           BASE_URL="${BASE_URL:-}"
