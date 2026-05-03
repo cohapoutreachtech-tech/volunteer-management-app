@@ -77,11 +77,17 @@ jobs:
           BASE_URL: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
           LOGIN_EMAIL: ${{ secrets.DEPLOYMENT_LOGIN_EMAIL }}
           LOGIN_PASSWORD: ${{ secrets.DEPLOYMENT_LOGIN_PASSWORD }}
+          CONNECT_TIMEOUT: 10
+          MAX_TIME: 30
+          MAX_ERROR_OUTPUT_LENGTH: 500
         run: |
           set -euo pipefail
           BASE_URL="${BASE_URL:-}"
           LOGIN_EMAIL="${LOGIN_EMAIL:-}"
           LOGIN_PASSWORD="${LOGIN_PASSWORD:-}"
+          CONNECT_TIMEOUT="${CONNECT_TIMEOUT:-10}"
+          MAX_TIME="${MAX_TIME:-30}"
+          MAX_ERROR_OUTPUT_LENGTH="${MAX_ERROR_OUTPUT_LENGTH:-500}"
           if [ -z "$BASE_URL" ]; then
             BASE_URL="https://volunteer-management-app.azurewebsites.net"
           fi
@@ -106,7 +112,7 @@ jobs:
           jq -n --arg email "$LOGIN_EMAIL" --arg password "$LOGIN_PASSWORD" \
             '{email: $email, password: $password}' > "$payload_file"
           set +e
-          response=$(curl -sS -w "\n%{http_code}" --connect-timeout 10 --max-time 30 \
+          response=$(curl -sS -w "\n%{http_code}" --connect-timeout "$CONNECT_TIMEOUT" --max-time "$MAX_TIME" \
             -X POST "${BASE_URL}/auth/login" \
             -H "Content-Type: application/json" \
             --data-binary @"$payload_file")
@@ -126,9 +132,10 @@ jobs:
             echo "Login check failed with status $status"
             sanitized_body=$(echo "$body" | sed -E \
               -e 's/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED_JWT]/g' \
-              -e 's/"(token|access_token|refresh_token)"[[:space:]]*:[[:space:]]*"[^"]*"/"\1":"[REDACTED]"/g')
+              -e 's/"(token|access_token|refresh_token)"[[:space:]]*:[[:space:]]*"[^"]*"/"\1":"[REDACTED]"/g' \
+              -e 's/"password"[[:space:]]*:[[:space:]]*"[^"]*"/"password":"[REDACTED]"/g')
             if [ -n "$sanitized_body" ]; then
-              printf 'Response body (sanitized, truncated): %s\n' "${sanitized_body:0:500}"
+              printf 'Response body (sanitized, truncated): %s\n' "${sanitized_body:0:$MAX_ERROR_OUTPUT_LENGTH}"
             fi
             exit 1
           fi
