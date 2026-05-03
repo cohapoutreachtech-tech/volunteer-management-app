@@ -88,6 +88,9 @@ jobs:
           CONNECT_TIMEOUT="${CONNECT_TIMEOUT:-10}"
           MAX_TIME="${MAX_TIME:-30}"
           MAX_ERROR_OUTPUT_LENGTH="${MAX_ERROR_OUTPUT_LENGTH:-500}"
+          if ! [[ "$MAX_ERROR_OUTPUT_LENGTH" =~ ^[0-9]+$ ]]; then
+            MAX_ERROR_OUTPUT_LENGTH=500
+          fi
           if [ -z "$BASE_URL" ]; then
             BASE_URL="https://volunteer-management-app.azurewebsites.net"
           fi
@@ -128,10 +131,14 @@ jobs:
           fi
           status="${response##*$'\n'}"
           body="${response%$'\n'*}"
+          if ! [[ "$status" =~ ^[0-9]{3}$ ]]; then
+            echo "Login check failed: unexpected status '$status'"
+            exit 1
+          fi
           if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
             echo "Login check failed with status $status"
             sanitized_body=$(echo "$body" | sed -E \
-              -e 's/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED_JWT]/g' \
+              -e 's/[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/[REDACTED_JWT]/g' \
               -e 's/"(token|access_token|refresh_token)"[[:space:]]*:[[:space:]]*"[^"]*"/"\1":"[REDACTED]"/g' \
               -e 's/"password"[[:space:]]*:[[:space:]]*"[^"]*"/"password":"[REDACTED]"/g')
             if [ -n "$sanitized_body" ]; then
