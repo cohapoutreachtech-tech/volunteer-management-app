@@ -97,17 +97,28 @@ jobs:
             echo "Missing required secrets: ${missing_secrets[*]}"
             exit 1
           fi
-          response=$(cat <<EOF | curl -s -w "\n%{http_code}" -X POST "${BASE_URL}/auth/login" \
-            -H "Content-Type: application/json" \
-            --data-binary @-
+          payload_file="$(mktemp)"
+          chmod 600 "$payload_file"
+          cleanup() {
+            rm -f "$payload_file"
+          }
+          trap cleanup EXIT
+          cat > "$payload_file" <<EOF
           {"email":"${LOGIN_EMAIL}","password":"${LOGIN_PASSWORD}"}
           EOF
-          )
+          response=$(curl -s -w "\n%{http_code}" -X POST "${BASE_URL}/auth/login" \
+            -H "Content-Type: application/json" \
+            --data-binary @"$payload_file")
           status="${response##*$'\n'}"
           body="${response%$'\n'*}"
           if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
             echo "Login check failed with status $status"
-            echo "Response body: $body"
+            sanitized_body=$(echo "$body" | sed -E \
+              -e 's/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[REDACTED_JWT]/g' \
+              -e 's/"(token|access_token|refresh_token)"[[:space:]]*:[[:space:]]*"[^"]*"/"\1":"[REDACTED]"/g')
+            if [ -n "$sanitized_body" ]; then
+              printf 'Response body (sanitized, truncated): %s\n' "${sanitized_body:0:500}"
+            fi
             exit 1
           fi
           echo "Login check succeeded with status $status"
