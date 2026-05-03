@@ -77,19 +77,22 @@ jobs:
           BASE_URL: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
           LOGIN_EMAIL: ${{ secrets.DEPLOYMENT_LOGIN_EMAIL }}
           LOGIN_PASSWORD: ${{ secrets.DEPLOYMENT_LOGIN_PASSWORD }}
-          CONNECT_TIMEOUT: ${{ secrets.DEPLOYMENT_CONNECT_TIMEOUT || 10 }}
-          MAX_TIME: ${{ secrets.DEPLOYMENT_MAX_TIME || 30 }}
-          MAX_ERROR_OUTPUT_LENGTH: ${{ secrets.DEPLOYMENT_MAX_ERROR_OUTPUT_LENGTH || 500 }}
+          CONNECT_TIMEOUT: ${{ vars.DEPLOYMENT_CONNECT_TIMEOUT }}
+          MAX_TIME: ${{ vars.DEPLOYMENT_MAX_TIME }}
+          MAX_ERROR_OUTPUT_LENGTH: ${{ vars.DEPLOYMENT_MAX_ERROR_OUTPUT_LENGTH }}
         run: |
           set -euo pipefail
           BASE_URL="${BASE_URL:-}"
           LOGIN_EMAIL="${LOGIN_EMAIL:-}"
           LOGIN_PASSWORD="${LOGIN_PASSWORD:-}"
-          CONNECT_TIMEOUT="${CONNECT_TIMEOUT:-10}"
-          MAX_TIME="${MAX_TIME:-30}"
-          MAX_ERROR_OUTPUT_LENGTH="${MAX_ERROR_OUTPUT_LENGTH:-500}"
+          DEFAULT_CONNECT_TIMEOUT=10
+          DEFAULT_MAX_TIME=30
+          DEFAULT_MAX_ERROR_OUTPUT_LENGTH=500
+          CONNECT_TIMEOUT="${CONNECT_TIMEOUT:-$DEFAULT_CONNECT_TIMEOUT}"
+          MAX_TIME="${MAX_TIME:-$DEFAULT_MAX_TIME}"
+          MAX_ERROR_OUTPUT_LENGTH="${MAX_ERROR_OUTPUT_LENGTH:-$DEFAULT_MAX_ERROR_OUTPUT_LENGTH}"
           if ! [[ "$MAX_ERROR_OUTPUT_LENGTH" =~ ^[0-9]+$ ]]; then
-            MAX_ERROR_OUTPUT_LENGTH=500
+            MAX_ERROR_OUTPUT_LENGTH="$DEFAULT_MAX_ERROR_OUTPUT_LENGTH"
           fi
           if [ -z "$BASE_URL" ]; then
             BASE_URL="https://volunteer-management-app.azurewebsites.net"
@@ -138,7 +141,7 @@ jobs:
           if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
             echo "Login check failed with status $status"
             sanitized_body=$(echo "$body" | sed -E \
-              -e 's/[A-Za-z0-9_+/=-]{10,}\.[A-Za-z0-9_+/=-]{10,}\.[A-Za-z0-9_+/=-]{10,}/[REDACTED_JWT]/g' \
+              -e 's/[A-Za-z0-9_+/=-]{4,}\.[A-Za-z0-9_+/=-]{4,}\.[A-Za-z0-9_+/=-]{4,}/[REDACTED_JWT]/g' \
               -e 's/"(token|access_token|refresh_token)"[[:space:]]*:[[:space:]]*"[^"]*"/"\1":"[REDACTED]"/g' \
               -e 's/"password"[[:space:]]*:[[:space:]]*"[^"]*"/"password":"[REDACTED]"/g' \
               -e 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/[REDACTED_EMAIL]/g')
